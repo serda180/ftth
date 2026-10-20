@@ -1,4 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../auth/AuthProvider';
+import { tieneRol } from '../lib/roles';
+import { crearOrdenesMasivas } from '../ordenes/api';
 import { Download, MessageCircle, Phone } from 'lucide-react';
 import { Link } from 'react-router';
 import { analizarImpacto, type TipoImpacto } from './api';
@@ -10,6 +14,19 @@ import { Aviso, Boton, Cargando } from '../components/ui';
 /** NAP y clientes que dependen de un cable, hilo, puerto PON o elemento. */
 export function ImpactoPanel({ tipo, id, nombre }: { tipo: TipoImpacto; id: string; nombre: string }) {
   const q = useQuery({ queryKey: ['red', 'impacto', tipo, id], queryFn: () => analizarImpacto(tipo, id) });
+  const { roles } = useAuth();
+  const esSupervisor = tieneRol(roles, 'supervisor_red');
+  const qc = useQueryClient();
+  const [resultadoMasivo, setResultadoMasivo] = useState('');
+  const masivas = useMutation({
+    mutationFn: (descripcion: string) => crearOrdenesMasivas(tipo, id, descripcion, 'alta'),
+    onSuccess: async (r) => {
+      setResultadoMasivo(
+        `Se crearon ${r.creadas} órdenes de reparación` + (r.omitidas ? ` (${r.omitidas} clientes ya tenían una abierta).` : '.'),
+      );
+      await qc.invalidateQueries({ queryKey: ['ordenes'] });
+    },
+  });
 
   if (q.isPending) return <Cargando texto="Calculando afectados…" />;
   if (q.isError) return <Aviso tipo="error">{mensajeError(q.error)}</Aviso>;
@@ -46,10 +63,23 @@ export function ImpactoPanel({ tipo, id, nombre }: { tipo: TipoImpacto; id: stri
         <p className="mt-1 text-sm text-tenue">Su rol no permite ver los datos de todos los clientes afectados.</p>
       )}
       {visibles > 0 && (
-        <Boton variante="secundario" className="mt-3 px-3 py-1.5 text-sm" onClick={exportar}>
-          <Download className="size-4" aria-hidden /> Exportar afectados (CSV)
-        </Boton>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Boton variante="secundario" className="px-3 py-1.5 text-sm" onClick={exportar}>
+            <Download className="size-4" aria-hidden /> Exportar afectados (CSV)
+          </Boton>
+          {esSupervisor && (
+            <Boton variante="secundario" className="px-3 py-1.5 text-sm" cargando={masivas.isPending}
+              onClick={() => {
+                const d = window.prompt(`Describa la falla para las órdenes de reparación (${visibles} clientes):`, `Falla en ${nombre}`);
+                if (d && d.trim()) masivas.mutate(d.trim());
+              }}>
+              Crear órdenes de reparación
+            </Boton>
+          )}
+        </div>
       )}
+      {resultadoMasivo && <div className="mt-2"><Aviso tipo="exito">{resultadoMasivo}</Aviso></div>}
+      {masivas.isError && <div className="mt-2"><Aviso tipo="error">{mensajeError(masivas.error)}</Aviso></div>}
       <ul className="mt-4 flex flex-col gap-3">
         {r.naps.map((n) => (
           <li key={n.id}>

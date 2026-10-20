@@ -94,6 +94,11 @@ export function FichaCliente() {
               <MessageCircle className="size-4" aria-hidden /> WhatsApp
             </a>
           )}
+          {puedeAsignar && c.estado !== 'retirado' && (
+            <Link to={`/ordenes/nueva?cliente=${c.id}`} className="inline-flex items-center gap-1.5 rounded-md border border-linea bg-superficie px-3 py-2 text-[15px] font-medium hover:border-tenue">
+              Nueva orden
+            </Link>
+          )}
           {puedeEditar && (
             <Link to={`/clientes/${c.id}/editar`} className="inline-flex items-center gap-1.5 rounded-md bg-acento px-3 py-2 text-[15px] font-semibold text-white hover:bg-acento-osc">
               <Pencil className="size-4" aria-hidden /> Editar

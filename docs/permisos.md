@@ -35,6 +35,14 @@ Los permisos se aplican en tres capas: la interfaz oculta lo que el rol no puede
 | Registrar, verificar o quitar conexiones (alimentación de NAP, inyección PON, empalmes) | sí | no | no | no |
 | Ver rutas, topología e impacto | sí | sí (solo clientes de sus órdenes) | sí | sí (sin datos de clientes) |
 | Planes y parámetros de la empresa | solo lectura | solo lectura | solo lectura | solo lectura |
+| Analizar factibilidad | sí | no | sí | no |
+| Decidir factibilidad | sí | no | no | no |
+| Reservar/liberar puerto, generar y asignar órdenes, cancelar solicitudes | sí | no | sí | no |
+| Ver solicitud de una instalación | sí | solo las de sus órdenes | sí | no |
+| Cerrar orden | sí | solo las propias | sí | no |
+| Fotos de órdenes: ver y subir | sí | solo sus órdenes | sí | no |
+| Fotos de órdenes: borrar | sí | no | sí | no |
+| Órdenes masivas por falla | sí | no | no | no |
 | Indicadores del panel | sí | no (tiene su vista "Mis órdenes") | sí | sí |
 
 (*) El técnico solo puede cambiar el estado a *en camino*, *en ejecución* o *completada*, y registrar potencia, resultado de pruebas, conformidad y observaciones. No puede reasignar, reprogramar, cambiar prioridad ni cancelar.

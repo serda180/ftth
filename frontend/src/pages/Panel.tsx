@@ -84,11 +84,12 @@ export function Panel() {
           </Grupo>
 
           <Grupo titulo="Instalaciones y órdenes" hilo="var(--color-f-verde)">
-            <Cifra valor={formatearEntero(d.ordenes.instalaciones_mes)} texto="instalaciones completadas este mes" grande />
+            <Cifra valor={formatearEntero(d.ordenes.instalaciones_mes)} texto="instalaciones completadas este mes" grande
+              a={enlaces ? '/ordenes?estado=completada&tipo=instalacion' : undefined} />
             <Fila>
-              <Dato valor={formatearEntero(d.solicitudes.pendientes)} texto="solicitudes en curso" />
-              <Dato valor={formatearEntero(d.solicitudes.en_factibilidad)} texto="en factibilidad" />
-              <Dato valor={formatearEntero(d.ordenes.abiertas)} texto="órdenes abiertas" />
+              <Dato valor={formatearEntero(d.solicitudes.pendientes)} texto="solicitudes en curso" a={enlaces ? '/solicitudes' : undefined} />
+              <Dato valor={formatearEntero(d.solicitudes.en_factibilidad)} texto="en factibilidad" a={enlaces ? '/solicitudes?estado=en_factibilidad' : undefined} />
+              <Dato valor={formatearEntero(d.ordenes.abiertas)} texto="órdenes abiertas" a={enlaces ? '/ordenes' : undefined} />
             </Fila>
           </Grupo>
 

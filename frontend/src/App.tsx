@@ -18,6 +18,13 @@ import { FormCliente } from './clientes/FormCliente';
 import { FichaCliente } from './clientes/FichaCliente';
 import { PaginaTopologia } from './topologia/PaginaTopologia';
 import { Configuracion } from './pages/Configuracion';
+import { ListaSolicitudes } from './solicitudes/ListaSolicitudes';
+import { FormSolicitud } from './solicitudes/FormSolicitud';
+import { FichaSolicitud } from './solicitudes/FichaSolicitud';
+import { ListaOrdenes } from './ordenes/ListaOrdenes';
+import { FormOrden } from './ordenes/FormOrden';
+import { FichaOrden } from './ordenes/FichaOrden';
+import { TecnicoOrden } from './ordenes/TecnicoOrden';
 import { NoEncontrado } from './pages/SinAcceso';
 
 const clienteQuery = new QueryClient({
@@ -102,6 +109,27 @@ export function App() {
                 element={
                   <RequiereRol roles={['atencion_cliente']}>
                     <FormCliente />
+                  </RequiereRol>
+                }
+              />
+              {(
+                [
+                  ['solicitudes', <ListaSolicitudes />],
+                  ['solicitudes/nueva', <FormSolicitud />],
+                  ['solicitudes/:id', <FichaSolicitud />],
+                  ['solicitudes/:id/editar', <FormSolicitud />],
+                  ['ordenes', <ListaOrdenes />],
+                  ['ordenes/nueva', <FormOrden />],
+                  ['ordenes/:id', <FichaOrden />],
+                ] as const
+              ).map(([ruta, pagina]) => (
+                <Route key={ruta} path={ruta} element={<RequiereRol roles={['supervisor_red', 'atencion_cliente']}>{pagina}</RequiereRol>} />
+              ))}
+              <Route
+                path="mis-ordenes/:id"
+                element={
+                  <RequiereRol roles={['tecnico']}>
+                    <TecnicoOrden />
                   </RequiereRol>
                 }
               />

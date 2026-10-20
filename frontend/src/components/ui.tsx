@@ -182,3 +182,27 @@ export function DatoFicha({ etiqueta, children }: { etiqueta: string; children: 
     </div>
   );
 }
+
+/** Punto de color + texto, para estados en listas y fichas. */
+export function Insignia({ color, children }: { color: string; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span className="size-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
+      {children}
+    </span>
+  );
+}
+
+/** Controles de paginación simples (anterior/siguiente). */
+export function Paginacion({ pagina, total, porPagina, alCambiar }: { pagina: number; total: number; porPagina: number; alCambiar: (p: number) => void }) {
+  const paginas = Math.max(1, Math.ceil(total / porPagina));
+  return (
+    <nav className="mt-4 flex items-center justify-between" aria-label="Paginación">
+      <p className="text-sm text-tenue">Página {pagina + 1} de {paginas}</p>
+      <div className="flex gap-2">
+        <Boton variante="secundario" disabled={pagina === 0} onClick={() => alCambiar(pagina - 1)}>Anterior</Boton>
+        <Boton variante="secundario" disabled={pagina + 1 >= paginas} onClick={() => alCambiar(pagina + 1)}>Siguiente</Boton>
+      </div>
+    </nav>
+  );
+}
