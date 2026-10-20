@@ -1,0 +1,47 @@
+# Configuración del entorno LOCAL de Supabase (supabase start).
+# En producción la configuración va en las variables del Supabase self-hosted
+# (ver docs/despliegue.md).
+project_id = "ftth-gestion"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+# Correos de desarrollo (invitaciones, recuperación): http://127.0.0.1:54324
+[inbucket]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/establecer-clave"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+# Sin registro público: solo por invitación de un administrador.
+enable_signup = false
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = false
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions.admin-usuarios]
+verify_jwt = true

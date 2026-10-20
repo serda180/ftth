@@ -1,0 +1,12 @@
+# Frontend de la plataforma para Dokploy (tipo "Docker Compose") o para
+# probar la imagen en local. Supabase se despliega aparte (docs/despliegue.md).
+services:
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:?Defina SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?Defina SUPABASE_ANON_KEY}
+    expose:
+      - "80"

@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/*
+  Identidad visual: el código de colores de fibra TIA-598 es el elemento
+  distintivo (cinta de 12 hilos). El resto es sobrio: grafito "chaqueta de
+  cable" para la navegación, gris frío de fondo y tinta azul pizarra.
+*/
+@theme {
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-cond: "Barlow Semi Condensed", "Barlow", ui-sans-serif, system-ui, sans-serif;
+
+  --color-chaqueta: #1d2a33;      /* menú lateral */
+  --color-chaqueta-2: #26363f;    /* hover en el menú */
+  --color-fondo: #eef1f3;         /* fondo de la app */
+  --color-superficie: #ffffff;
+  --color-tinta: #17232c;         /* texto principal */
+  --color-tenue: #5b6b76;         /* texto secundario */
+  --color-linea: #d5dce1;         /* bordes */
+  --color-acento: #1f6fd1;        /* hilo azul: acciones primarias */
+  --color-acento-osc: #185aab;
+
+  /* Código TIA-598 (orden de hilos 1 a 12) */
+  --color-f-azul: #1f6fd1;
+  --color-f-naranjo: #e8740c;
+  --color-f-verde: #2e9d4f;
+  --color-f-cafe: #8a5a3c;
+  --color-f-gris: #8c969d;
+  --color-f-blanco: #f4f6f7;
+  --color-f-rojo: #d33a2c;
+  --color-f-negro: #1b1f22;
+  --color-f-amarillo: #f2c230;
+  --color-f-violeta: #7b4cc2;
+  --color-f-rosado: #e98bb4;
+  --color-f-aqua: #2bb3b8;
+
+  /* Estados (tomados del mismo código) */
+  --color-ok: #2e9d4f;
+  --color-alerta: #c98a06;
+  --color-error: #c2352a;
+}
+
+html {
+  font-family: var(--font-sans);
+  color: var(--color-tinta);
+  background: var(--color-fondo);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+.cifra {
+  font-family: var(--font-cond);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
