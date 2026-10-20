@@ -12,6 +12,7 @@ import { Panel } from './pages/Panel';
 import { MisOrdenes } from './pages/MisOrdenes';
 import { Usuarios } from './pages/Usuarios';
 import { MiCuenta } from './pages/MiCuenta';
+import { PaginaMapa } from './mapa/PaginaMapa';
 import { NoEncontrado } from './pages/SinAcceso';
 
 const clienteQuery = new QueryClient({
@@ -71,6 +72,7 @@ export function App() {
                   </RequiereRol>
                 }
               />
+              <Route path="mapa" element={<PaginaMapa />} />
               <Route path="mi-cuenta" element={<MiCuenta />} />
               <Route path="*" element={<NoEncontrado />} />
             </Route>

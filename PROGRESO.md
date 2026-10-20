@@ -2,17 +2,17 @@
 
 Estados: **implementado y probado** · **implementado sin pruebas** · **solo interfaz** · **pendiente**
 
-Última actualización: 20-10-2026 — fin de la Etapa 1.
+Última actualización: 20-10-2026 — fin de la Etapa 2.
 
 ## Etapa 1 — Base
 
 | Módulo | Estado | Notas |
 |---|---|---|
-| Modelo de datos completo (migraciones 0001–0010) | implementado y probado | 82 pruebas pgTAP. Probado en PostgreSQL 16 con PostGIS simulado; falta correr en Supabase real (`supabase test db`). |
+| Modelo de datos completo (migraciones 0001–0010) | implementado y probado | Pruebas pgTAP (108 en total con la Etapa 2). Probado en PostgreSQL 16 con PostGIS simulado; falta correr en Supabase real (`supabase test db`). |
 | Validación de RUT y teléfono (base y frontend) | implementado y probado | Mismas reglas en SQL y TypeScript, con pruebas en ambos. |
 | Roles, RLS y protecciones de cuentas | implementado y probado | Matriz en `docs/permisos.md`. |
 | Auditoría por disparadores | implementado y probado | |
-| Puertos de NAP e hilos de cable automáticos | implementado y probado | Esquema y reglas listos; la interfaz llega en la Etapa 2. |
+| Puertos de NAP e hilos de cable automáticos | implementado y probado | Se ven y gestionan desde el mapa (Etapa 2). |
 | Inventario: costo más alto, stock, consumo del técnico | implementado y probado | Esquema y reglas listos; la interfaz llega en la Etapa 5. |
 | Indicadores del panel (`dashboard_indicadores`) | implementado y probado | |
 | Datos de demostración y su eliminación | implementado y probado | `supabase/seed.sql`, `eliminar_datos_demo()`. |
@@ -26,21 +26,37 @@ Estados: **implementado y probado** · **implementado sin pruebas** · **solo in
 | Entorno local con un comando (`scripts/dev.sh`) | implementado sin pruebas | |
 | CI en GitHub Actions | implementado sin pruebas | Corre pgTAP y la compilación del frontend en cada push. |
 
+## Etapa 2 — Mapa GIS
+
+| Módulo | Estado | Notas |
+|---|---|---|
+| Funciones SQL del mapa (migración 0011): carga por zona con agrupación, alta/edición/movimiento/baja de elementos y cables, búsqueda, fichas | implementado y probado | 26 pruebas nuevas (`07_mapa.test.sql`), incluido el ajuste de extremos y el cálculo de longitud. |
+| Guardia de estados de puerto (libre ↔ averiado) | implementado y probado | |
+| Cálculos de distancia en el navegador | implementado y probado | Pruebas unitarias; coinciden con PostGIS. |
+| Mapa: capas, filtros por tipo/estado/sector, leyenda, satélite, mi ubicación | implementado sin pruebas | Sin compilar aún (entorno sin npm). |
+| Mapa: agregar elementos de cualquier tipo con sus datos propios | implementado sin pruebas | |
+| Mapa: dibujar cables con unión a elementos, editar trazado, medir | implementado sin pruebas | |
+| Mapa: ficha de NAP con grilla de puertos, alimentación y cambio libre/averiado | implementado sin pruebas | |
+| Mapa: ficha de cable con hilos por tubo y color | implementado sin pruebas | |
+| Búsqueda por código, nombre, dirección, sector y RUT | implementado sin pruebas (función SQL probada) | |
+| Importar/exportar GeoJSON y KML | pendiente | Etapa 6. |
+| Clientes en el mapa | pendiente | Etapa 3. |
+
 ## Etapas siguientes
 
 | Etapa | Estado |
 |---|---|
-| 2 — Mapa GIS, elementos, cables, NAP | pendiente |
 | 3 — Clientes, puertos, conexiones, topología | pendiente (esquema listo) |
 | 4 — Solicitudes, factibilidad, órdenes, app del técnico, fotos | pendiente (esquema de solicitudes y órdenes listo) |
 | 5 — Inventario (interfaz), estadísticas, auditoría (interfaz) | pendiente (reglas de inventario listas) |
 | 6 — Importación/exportación, respaldos, E2E, despliegue | pendiente |
 
-## Verificación pendiente de la Etapa 1
+## Verificación pendiente (Etapas 1 y 2)
 
 Primera ejecución con Docker y npm disponibles:
 
 1. `./scripts/dev.sh` levanta todo sin errores.
-2. `npx supabase@2 test db` pasa las 82 pruebas en Supabase real.
+2. `npx supabase@2 test db` pasa las 108 pruebas en Supabase real (con PostGIS de verdad).
 3. `cd frontend && npm run typecheck && npm test && npm run build` pasa.
 4. Crear administrador, invitar un técnico y un usuario de atención, y comprobar que el técnico no ve el panel ni clientes ajenos.
+5. En el mapa, como supervisor: crear dos elementos, dibujar un cable entre ellos, crear una NAP y ver sus puertos; recargar y comprobar que todo persiste (criterio de término de la Etapa 2).

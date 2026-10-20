@@ -29,6 +29,8 @@ Los permisos se aplican en tres capas: la interfaz oculta lo que el rol no puede
 | Movimientos de inventario | L | L de su bodega; C solo consumo en sus órdenes | — | L C |
 | Ajuste de costo de artículos | — | — | — | — |
 | Auditoría | — | — | — | — |
+| Mapa: ver elementos, cables, fichas, buscar, medir | sí | sí | sí | sí |
+| Mapa: crear, editar, mover y eliminar elementos y cables | sí | no | no | no |
 | Indicadores del panel | sí | no (tiene su vista "Mis órdenes") | sí | sí |
 
 (*) El técnico solo puede cambiar el estado a *en camino*, *en ejecución* o *completada*, y registrar potencia, resultado de pruebas, conformidad y observaciones. No puede reasignar, reprogramar, cambiar prioridad ni cancelar.

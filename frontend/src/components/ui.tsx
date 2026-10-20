@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { LoaderCircle, TriangleAlert, CircleCheck } from 'lucide-react';
 
 export function Boton({
@@ -105,5 +105,80 @@ export function EncabezadoPagina({ titulo, detalle, acciones }: { titulo: string
       </div>
       {acciones}
     </header>
+  );
+}
+
+export function Selector({
+  etiqueta,
+  id,
+  opciones,
+  error,
+  ayuda,
+  vacio,
+  ...resto
+}: Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
+  etiqueta: string;
+  id: string;
+  opciones: { valor: string | number; texto: string }[];
+  error?: string;
+  ayuda?: string;
+  /** Texto de la opción vacía; si se omite, no hay opción vacía. */
+  vacio?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-sm font-medium text-tinta">
+        {etiqueta}
+      </label>
+      <select
+        id={id}
+        {...resto}
+        aria-invalid={error ? true : undefined}
+        className={`rounded-md border bg-superficie px-3 py-2 text-[15px] outline-none
+          focus:border-acento focus:ring-2 focus:ring-acento/20 ${error ? 'border-error' : 'border-linea'}`}
+      >
+        {vacio !== undefined && <option value="">{vacio}</option>}
+        {opciones.map((o) => (
+          <option key={o.valor} value={o.valor}>
+            {o.texto}
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <p className="text-sm text-error">{error}</p>
+      ) : ayuda ? (
+        <p className="text-sm text-tenue">{ayuda}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function AreaTexto({
+  etiqueta,
+  id,
+  ...resto
+}: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> & { etiqueta: string; id: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-sm font-medium text-tinta">
+        {etiqueta}
+      </label>
+      <textarea
+        id={id}
+        rows={3}
+        {...resto}
+        className="rounded-md border border-linea bg-superficie px-3 py-2 text-[15px] outline-none focus:border-acento focus:ring-2 focus:ring-acento/20"
+      />
+    </div>
+  );
+}
+
+/** Par etiqueta/valor para fichas de solo lectura. */
+export function DatoFicha({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,9rem)_1fr] gap-2 py-1.5 text-[15px]">
+      <dt className="text-tenue">{etiqueta}</dt>
+      <dd className="min-w-0 break-words">{children ?? '—'}</dd>
+    </div>
   );
 }

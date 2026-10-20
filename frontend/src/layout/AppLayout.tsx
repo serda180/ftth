@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Gauge, ClipboardList, Users, UserCircle, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
+import { Gauge, ClipboardList, Map as IconoMapa, Users, UserCircle, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { ROLES_PANEL, nombreRol, tieneRol, type Rol } from '../lib/roles';
 import { supabase } from '../lib/supabase';
@@ -13,6 +13,7 @@ type ItemMenu = { a: string; texto: string; icono: LucideIcon; roles: Rol[] | 't
 // agregan aquí a medida que se implementan.
 const MENU: ItemMenu[] = [
   { a: '/', texto: 'Panel', icono: Gauge, roles: ROLES_PANEL },
+  { a: '/mapa', texto: 'Mapa de la red', icono: IconoMapa, roles: 'todos' },
   { a: '/mis-ordenes', texto: 'Mis órdenes', icono: ClipboardList, roles: ['tecnico'] },
   { a: '/usuarios', texto: 'Usuarios', icono: Users, roles: ['administrador'] },
   { a: '/mi-cuenta', texto: 'Mi cuenta', icono: UserCircle, roles: 'todos' },
@@ -41,6 +42,7 @@ export function AppLayout() {
   const ubicacion = useLocation();
 
   useEffect(() => setAbierto(false), [ubicacion.pathname]);
+  const pantallaCompleta = ubicacion.pathname.startsWith('/mapa');
 
   const items = MENU.filter((i) => i.roles === 'todos' || tieneRol(roles, ...i.roles));
 
@@ -128,9 +130,16 @@ export function AppLayout() {
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
-        <Outlet />
-      </main>
+      {pantallaCompleta ? (
+        // El mapa usa todo el alto disponible, sin márgenes.
+        <main className="h-[calc(100dvh-52px)] w-full lg:h-dvh">
+          <Outlet />
+        </main>
+      ) : (
+        <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
+          <Outlet />
+        </main>
+      )}
     </div>
   );
 }

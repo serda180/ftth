@@ -68,3 +68,62 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Mapa ---------- */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #dfe5e8;
+}
+.mapa-simbolo,
+.mapa-grupo,
+.mapa-punto {
+  background: none;
+  border: none;
+}
+.mapa-simbolo-interior {
+  position: relative;
+}
+.mapa-simbolo-interior > svg {
+  display: block;
+}
+.mapa-etiqueta {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 1px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.92);
+  color: var(--color-tinta);
+  font: 600 12px/1.5 var(--font-cond);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.mapa-grupo > div {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: rgb(29 42 51 / 0.88);
+  border: 3px solid rgb(255 255 255 / 0.85);
+  color: #fff;
+  font: 600 13px var(--font-cond);
+  font-variant-numeric: tabular-nums;
+}
+.mapa-punto > div {
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+.mapa-medida {
+  background: var(--color-chaqueta);
+  color: #fff;
+  border: none;
+  font: 600 13px var(--font-cond);
+}
+.mapa-medida::before {
+  display: none;
+}
+.leaflet-container.mapa-cursor-cruz {
+  cursor: crosshair;
+}
