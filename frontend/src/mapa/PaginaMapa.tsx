@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router';
 import { Layers, LocateFixed, Plus, Ruler, Satellite, Spline, X } from 'lucide-react';
 import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -11,6 +12,9 @@ import {
   actualizarCable,
   cargarCables,
   cargarCatalogos,
+  cargarClientesMapa,
+  fichaCable,
+  fichaElemento,
   cargarElementos,
   cargarZonas,
   eliminarCable,
@@ -57,6 +61,7 @@ const FILTROS_INICIALES: Filtros = {
   estados: ESTADOS.filter((e) => e.valor !== 'retirado').map((e) => e.valor),
   sector: '',
   zonas: true,
+  clientes: true,
 };
 
 const RADIO_CANDIDATOS_M = 200;
@@ -64,6 +69,8 @@ const RADIO_CANDIDATOS_M = 200;
 export function PaginaMapa() {
   const { roles } = useAuth();
   const puedeEditar = tieneRol(roles, 'supervisor_red');
+  const puedeVerClientes = tieneRol(roles, 'supervisor_red', 'atencion_cliente', 'tecnico');
+  const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
 
   const catalogos = useQuery({ queryKey: ['mapa', 'catalogos'], queryFn: cargarCatalogos, staleTime: 10 * 60_000 });
@@ -110,6 +117,45 @@ export function PaginaMapa() {
     placeholderData: keepPreviousData,
   });
 
+  const clientesMapa = useQuery({
+    queryKey: ['mapa', 'clientes', claveVista],
+    queryFn: () => cargarClientesMapa(vista!),
+    enabled: vista != null && vista.zoom >= 16 && filtros.clientes && puedeVerClientes,
+    placeholderData: keepPreviousData,
+  });
+
+  // Enlaces directos: /mapa?elemento=<id> o /mapa?cable=<id> centran y abren la ficha.
+  useEffect(() => {
+    if (!mapa) return;
+    const elemento = params.get('elemento');
+    const cable = params.get('cable');
+    if (!elemento && !cable) return;
+    let vigente = true;
+    void (async () => {
+      try {
+        if (elemento) {
+          const f = await fichaElemento(elemento);
+          if (vigente && f) {
+            mapa.setView([f.lat, f.lng], Math.max(mapa.getZoom(), 18));
+            setSeleccion({ tipo: 'elemento', id: f.id });
+          }
+        } else if (cable) {
+          const f = await fichaCable(cable);
+          const c = f?.coordenadas[Math.floor((f?.coordenadas.length ?? 1) / 2)];
+          if (vigente && f && c) {
+            mapa.setView([c[1], c[0]], Math.max(mapa.getZoom(), 17));
+            setSeleccion({ tipo: 'cable', id: f.id });
+          }
+        }
+      } finally {
+        if (vigente) setParams({}, { replace: true });
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, [mapa, params, setParams]);
+
   const itemsElementos: ElementoMapa[] =
     elementos.data?.modo === 'elementos' ? elementos.data.items : [];
 
@@ -127,6 +173,7 @@ export function PaginaMapa() {
 
   async function refrescar() {
     await qc.invalidateQueries({ queryKey: ['mapa'] });
+    await qc.invalidateQueries({ queryKey: ['red'] });
   }
 
   // ---------------- Acciones sobre el mapa ----------------
@@ -353,6 +400,7 @@ export function PaginaMapa() {
     } else if (modo.tipo === 'normal' && seleccion?.tipo === 'elemento') {
       panel = (
         <FichaElementoPanel
+          key={seleccion.id}
           id={seleccion.id}
           puedeEditar={puedeEditar}
           eliminando={borrarElemento.isPending}
@@ -369,6 +417,7 @@ export function PaginaMapa() {
     } else if (modo.tipo === 'normal' && seleccion?.tipo === 'cable') {
       panel = (
         <FichaCablePanel
+          key={seleccion.id}
           id={seleccion.id}
           puedeEditar={puedeEditar}
           eliminando={borrarCable.isPending}
@@ -401,6 +450,7 @@ export function PaginaMapa() {
           elementos={elementos.data}
           cables={cables.data ?? []}
           zonas={filtros.zonas ? (zonas.data ?? []) : []}
+          clientes={filtros.clientes && puedeVerClientes && (vista?.zoom ?? 0) >= 16 ? (clientesMapa.data ?? []) : []}
           seleccion={seleccion}
           ocultarElemento={modo.tipo === 'mover' ? modo.ficha.id : null}
           borrador={borrador}
@@ -531,7 +581,7 @@ export function PaginaMapa() {
                 <X className="size-5" aria-hidden />
               </button>
             </div>
-            <PanelCapas filtros={filtros} catalogos={cat} alCambiar={setFiltros} />
+            <PanelCapas filtros={filtros} catalogos={cat} alCambiar={setFiltros} mostrarClientes={puedeVerClientes} />
           </div>
         )}
 

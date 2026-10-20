@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Gauge, ClipboardList, Map as IconoMapa, Users, UserCircle, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
+import { Gauge, ClipboardList, Map as IconoMapa, Network, Contact, Settings, Users, UserCircle, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { ROLES_PANEL, nombreRol, tieneRol, type Rol } from '../lib/roles';
 import { supabase } from '../lib/supabase';
@@ -14,8 +14,11 @@ type ItemMenu = { a: string; texto: string; icono: LucideIcon; roles: Rol[] | 't
 const MENU: ItemMenu[] = [
   { a: '/', texto: 'Panel', icono: Gauge, roles: ROLES_PANEL },
   { a: '/mapa', texto: 'Mapa de la red', icono: IconoMapa, roles: 'todos' },
+  { a: '/clientes', texto: 'Clientes', icono: Contact, roles: ['supervisor_red', 'atencion_cliente'] },
+  { a: '/topologia', texto: 'Topología', icono: Network, roles: 'todos' },
   { a: '/mis-ordenes', texto: 'Mis órdenes', icono: ClipboardList, roles: ['tecnico'] },
   { a: '/usuarios', texto: 'Usuarios', icono: Users, roles: ['administrador'] },
+  { a: '/configuracion', texto: 'Configuración', icono: Settings, roles: ['administrador'] },
   { a: '/mi-cuenta', texto: 'Mi cuenta', icono: UserCircle, roles: 'todos' },
 ];
 

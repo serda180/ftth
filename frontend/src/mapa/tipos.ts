@@ -175,6 +175,27 @@ export type Filtros = {
   estados: EstadoElemento[];
   sector: string;
   zonas: boolean;
+  clientes: boolean;
+};
+
+export type ClienteMapa = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: 'pendiente' | 'activo' | 'suspendido' | 'retirado';
+  lng: number;
+  lat: number;
+  nap_lng: number | null;
+  nap_lat: number | null;
+  nap_codigo: string | null;
+  puerto: number | null;
+};
+
+export const COLOR_CLIENTE: Record<ClienteMapa['estado'], string> = {
+  pendiente: '#c98a06',
+  activo: '#2e9d4f',
+  suspendido: '#d33a2c',
+  retirado: '#8c969d',
 };
 
 // ---------------------------------------------------------------------

@@ -1,4 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router';
+import { useAuth } from '../auth/AuthProvider';
+import { tieneRol } from '../lib/roles';
 import { RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
@@ -35,6 +38,8 @@ const NOMBRE_CABLE: Record<string, string> = {
 };
 
 export function Panel() {
+  const { roles } = useAuth();
+  const enlaces = tieneRol(roles, 'supervisor_red', 'atencion_cliente');
   const consulta = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => {
@@ -66,10 +71,10 @@ export function Panel() {
       {d && (
         <div className="grid gap-x-10 gap-y-9 md:grid-cols-2">
           <Grupo titulo="Clientes" hilo="var(--color-f-azul)">
-            <Cifra valor={formatearEntero(d.clientes.activos)} texto="activos" grande />
+            <Cifra valor={formatearEntero(d.clientes.activos)} texto="activos" grande a={enlaces ? '/clientes?estado=activo' : undefined} />
             <Fila>
-              <Dato valor={formatearEntero(d.clientes.suspendidos)} texto="suspendidos" />
-              <Dato valor={formatearEntero(d.clientes.pendientes)} texto="por instalar" />
+              <Dato valor={formatearEntero(d.clientes.suspendidos)} texto="suspendidos" a={enlaces ? '/clientes?estado=suspendido' : undefined} />
+              <Dato valor={formatearEntero(d.clientes.pendientes)} texto="por instalar" a={enlaces ? '/clientes?estado=pendiente' : undefined} />
               <Dato valor={formatearEntero(d.clientes.retirados_mes)} texto="retirados este mes" />
             </Fila>
             <p className="mt-4 text-tenue">
@@ -90,7 +95,7 @@ export function Panel() {
           <Grupo titulo="Red de acceso" hilo="var(--color-f-naranjo)">
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
               <Cifra valor={`${formatearDecimal(d.puertos.ocupacion_pct)} %`} texto="ocupación de puertos" grande />
-              <Cifra valor={formatearEntero(d.nap.total)} texto="NAP registradas" />
+              <Cifra valor={formatearEntero(d.nap.total)} texto="NAP registradas" a="/topologia" />
             </div>
             <BarraPuertos p={d.puertos} />
             {d.nap.sobre_alerta > 0 ? (
@@ -142,12 +147,17 @@ function Grupo({ titulo, hilo, children }: { titulo: string; hilo: string; child
   );
 }
 
-function Cifra({ valor, texto, grande = false }: { valor: string; texto: string; grande?: boolean }) {
-  return (
-    <p className="flex flex-col">
+function Cifra({ valor, texto, grande = false, a }: { valor: string; texto: string; grande?: boolean; a?: string }) {
+  const contenido = (
+    <>
       <span className={`cifra font-semibold leading-none ${grande ? 'text-[56px]' : 'text-[32px]'}`}>{valor}</span>
-      <span className="mt-1 text-tenue">{texto}</span>
-    </p>
+      <span className={`mt-1 ${a ? 'text-acento group-hover:underline' : 'text-tenue'}`}>{texto}</span>
+    </>
+  );
+  return a ? (
+    <Link to={a} className="group flex flex-col">{contenido}</Link>
+  ) : (
+    <p className="flex flex-col">{contenido}</p>
   );
 }
 
@@ -155,12 +165,17 @@ function Fila({ children }: { children: ReactNode }) {
   return <div className="mt-5 grid grid-cols-3 gap-4 border-t border-linea pt-4">{children}</div>;
 }
 
-function Dato({ valor, texto }: { valor: string; texto: string }) {
-  return (
-    <p className="flex flex-col">
+function Dato({ valor, texto, a }: { valor: string; texto: string; a?: string }) {
+  const contenido = (
+    <>
       <span className="cifra text-2xl font-semibold">{valor}</span>
-      <span className="text-sm text-tenue">{texto}</span>
-    </p>
+      <span className={`text-sm ${a ? 'text-acento group-hover:underline' : 'text-tenue'}`}>{texto}</span>
+    </>
+  );
+  return a ? (
+    <Link to={a} className="group flex flex-col">{contenido}</Link>
+  ) : (
+    <p className="flex flex-col">{contenido}</p>
   );
 }
 

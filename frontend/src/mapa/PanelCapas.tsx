@@ -7,10 +7,13 @@ export function PanelCapas({
   filtros,
   catalogos,
   alCambiar,
+  mostrarClientes,
 }: {
   filtros: Filtros;
   catalogos: Catalogos;
   alCambiar: (f: Filtros) => void;
+  /** Solo los roles que pueden ver clientes tienen esta capa. */
+  mostrarClientes: boolean;
 }) {
   function alternar<T>(lista: T[], valor: T): T[] {
     return lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor];
@@ -44,7 +47,7 @@ export function PanelCapas({
       </fieldset>
 
       <fieldset>
-        <legend className="mb-1.5 font-cond text-base font-semibold">Cables</legend>
+        <legend className="mb-1.5 font-cond text-base font-semibold">Cables y otras capas</legend>
         <ul className="flex flex-col gap-0.5">
           {TIPOS_CABLE.map((t) => (
             <li key={t.valor}>
@@ -74,6 +77,20 @@ export function PanelCapas({
               Zonas de cobertura
             </label>
           </li>
+          {mostrarClientes && (
+            <li>
+              <label className="flex cursor-pointer items-center gap-2.5 rounded px-1 py-1 hover:bg-fondo">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-[var(--color-acento)]"
+                  checked={filtros.clientes}
+                  onChange={() => alCambiar({ ...filtros, clientes: !filtros.clientes })}
+                />
+                <span className="block size-3 rounded-full border-2 border-white bg-ok shadow" aria-hidden />
+                Clientes (desde zoom 16)
+              </label>
+            </li>
+          )}
         </ul>
       </fieldset>
 

@@ -18,6 +18,10 @@ jobs:
         run: supabase db start
       - name: Pruebas pgTAP
         run: supabase test db
+      - name: Prueba de concurrencia en la asignación de puertos
+        run: bash supabase/tests/concurrencia/asignacion_puertos.sh
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
   frontend:
     name: Frontend (tipos, pruebas y compilación)

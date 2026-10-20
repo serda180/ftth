@@ -31,6 +31,10 @@ Los permisos se aplican en tres capas: la interfaz oculta lo que el rol no puede
 | Auditoría | — | — | — | — |
 | Mapa: ver elementos, cables, fichas, buscar, medir | sí | sí | sí | sí |
 | Mapa: crear, editar, mover y eliminar elementos y cables | sí | no | no | no |
+| Asignar, cambiar o liberar el puerto de un cliente | sí | no | sí | no |
+| Registrar, verificar o quitar conexiones (alimentación de NAP, inyección PON, empalmes) | sí | no | no | no |
+| Ver rutas, topología e impacto | sí | sí (solo clientes de sus órdenes) | sí | sí (sin datos de clientes) |
+| Planes y parámetros de la empresa | solo lectura | solo lectura | solo lectura | solo lectura |
 | Indicadores del panel | sí | no (tiene su vista "Mis órdenes") | sí | sí |
 
 (*) El técnico solo puede cambiar el estado a *en camino*, *en ejecución* o *completada*, y registrar potencia, resultado de pruebas, conformidad y observaciones. No puede reasignar, reprogramar, cambiar prioridad ni cancelar.

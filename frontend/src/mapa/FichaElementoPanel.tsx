@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Move, Navigation, Pencil, Trash2 } from 'lucide-react';
+import { Link } from 'react-router';
+import { Activity, Move, Navigation, Pencil, Trash2 } from 'lucide-react';
+import { AlimentacionNap, InyeccionesPon } from './Conexiones';
+import { ImpactoPanel } from '../red/ImpactoPanel';
 import { cambiarEstadoPuerto, fichaElemento } from './api';
-import { COLOR_HILO, COLOR_PUERTO, NOMBRE_PUERTO, nombreEstado, type FichaElemento, type PuertoFicha } from './tipos';
+import { COLOR_PUERTO, NOMBRE_PUERTO, nombreEstado, type FichaElemento, type PuertoFicha } from './tipos';
 import { mensajeError } from '../lib/errores';
 import { formatearFecha, formatearFechaHora } from '../lib/formato';
 import { Aviso, Boton, Cargando, DatoFicha } from '../components/ui';
@@ -92,23 +95,9 @@ export function FichaElementoPanel({
 
       {f.clase === 'nap' && f.puertos && <SeccionNap f={f} puedeEditar={puedeEditar} />}
 
-      {f.clase === 'olt' && f.puertos_pon && (
-        <section className="mt-6">
-          <h3 className="mb-2 font-cond text-lg font-semibold">Puertos PON</h3>
-          {f.puertos_pon.length === 0 ? (
-            <p className="text-tenue">Sin puertos PON registrados.</p>
-          ) : (
-            <ul className="grid grid-cols-2 gap-1.5 text-sm sm:grid-cols-3">
-              {f.puertos_pon.map((p) => (
-                <li key={p.id} className="rounded border border-linea px-2 py-1">
-                  <span className="font-medium">{p.etiqueta ?? `${p.slot}/${p.puerto}`}</span>
-                  <span className="block text-tenue">{p.hilos === 0 ? 'Sin hilos' : `${p.hilos} hilo${p.hilos > 1 ? 's' : ''}`}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {f.clase === 'olt' && f.puertos_pon && <SeccionOlt f={f} puedeEditar={puedeEditar} />}
+
+      <SeccionImpacto tipo="elemento" id={f.id} nombre={f.codigo} automatico={f.estado === 'fuera_servicio'} />
 
       <section className="mt-6">
         <h3 className="mb-1 font-cond text-lg font-semibold">Datos</h3>
@@ -174,7 +163,6 @@ function SeccionNap({ f, puedeEditar }: { f: FichaElemento; puedeEditar: boolean
   const cuenta = (e: PuertoFicha['estado']) => puertos.filter((p) => p.estado === e).length;
   const ocupacion = puertos.length ? ((cuenta('ocupado') + cuenta('reservado')) / puertos.length) * 100 : 0;
   const [elegido, setElegido] = useState<PuertoFicha | null>(null);
-  const a = f.alimentacion;
 
   return (
     <section className="mt-6">
@@ -198,26 +186,8 @@ function SeccionNap({ f, puedeEditar }: { f: FichaElemento; puedeEditar: boolean
         />
       )}
 
-      <h3 className="mb-1 mt-6 font-cond text-lg font-semibold">Alimentación</h3>
-      {a ? (
-        <dl>
-          <DatoFicha etiqueta="Cable">{a.cable_codigo}</DatoFicha>
-          <DatoFicha etiqueta="Hilo">
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                className="size-3 rounded-full border border-linea"
-                style={{ background: COLOR_HILO[a.color] ?? a.color }}
-                aria-hidden
-              />
-              N.º {a.hilo} ({a.color}, tubo {a.tubo})
-            </span>
-          </DatoFicha>
-          <DatoFicha etiqueta="OLT / PON">{a.olt_codigo ? `${a.olt_codigo} · ${a.puerto_pon}` : 'Sin inyección registrada'}</DatoFicha>
-          <DatoFicha etiqueta="Verificada">{a.confirmada ? 'Sí, en terreno' : 'No, solo registrada'}</DatoFicha>
-        </dl>
-      ) : (
-        <p className="text-tenue">Aún no hay una conexión registrada desde el troncal hacia esta NAP.</p>
-      )}
+      <h3 className="mb-2 mt-6 font-cond text-lg font-semibold">Ruta hasta la OLT</h3>
+      <AlimentacionNap napId={f.id} puedeEditar={puedeEditar} />
     </section>
   );
 }
@@ -285,6 +255,7 @@ function DetallePuerto({
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['mapa', 'ficha-elemento', napId] });
       await qc.invalidateQueries({ queryKey: ['mapa', 'elementos'] });
+      await qc.invalidateQueries({ queryKey: ['red'] });
     },
   });
   const editable = puedeEditar && (puerto.estado === 'libre' || puerto.estado === 'averiado');
@@ -301,7 +272,8 @@ function DetallePuerto({
       </div>
       {puerto.cliente && (
         <p className="mt-1">
-          {puerto.cliente.nombre} <span className="text-sm text-tenue">({puerto.cliente.codigo})</span>
+          <Link to={`/clientes/${puerto.cliente.id}`} className="text-acento hover:underline">{puerto.cliente.nombre}</Link>{' '}
+          <span className="text-sm text-tenue">({puerto.cliente.codigo})</span>
         </p>
       )}
       {!puerto.cliente && puerto.estado === 'ocupado' && (
@@ -337,5 +309,71 @@ function DetallePuerto({
         <p className="mt-2 text-sm text-tenue">Los puertos ocupados o reservados se liberan desde el cliente o la solicitud.</p>
       )}
     </div>
+  );
+}
+
+function SeccionOlt({ f, puedeEditar }: { f: FichaElemento; puedeEditar: boolean }) {
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const pons = f.puertos_pon ?? [];
+  return (
+    <section className="mt-6">
+      <h3 className="mb-2 font-cond text-lg font-semibold">Puertos PON</h3>
+      {pons.length === 0 ? (
+        <p className="text-tenue">Sin puertos PON registrados.</p>
+      ) : (
+        <ul className="grid grid-cols-2 gap-1.5 text-sm sm:grid-cols-3">
+          {pons.map((p) => (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => setAbierto(abierto === p.id ? null : p.id)}
+                aria-expanded={abierto === p.id}
+                className={`w-full rounded border px-2 py-1 text-left ${abierto === p.id ? 'border-acento' : 'border-linea hover:border-tenue'}`}
+              >
+                <span className="font-medium">{p.etiqueta ?? `${p.slot}/${p.puerto}`}</span>
+                <span className="block text-tenue">{p.hilos === 0 ? 'Sin hilos' : `${p.hilos} hilo${p.hilos > 1 ? 's' : ''}`}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {abierto && (
+        <InyeccionesPon
+          key={abierto}
+          ponId={abierto}
+          oltId={f.id}
+          etiqueta={pons.find((p) => p.id === abierto)?.etiqueta ?? 'PON'}
+          puedeEditar={puedeEditar}
+        />
+      )}
+    </section>
+  );
+}
+
+/** Qué NAP y clientes dependen de este elemento o cable. Se abre solo si está fuera de servicio. */
+export function SeccionImpacto({
+  tipo,
+  id,
+  nombre,
+  automatico,
+}: {
+  tipo: 'elemento' | 'cable';
+  id: string;
+  nombre: string;
+  automatico: boolean;
+}) {
+  const [abierto, setAbierto] = useState(automatico);
+  return (
+    <section className="mt-6">
+      <h3 className="mb-2 font-cond text-lg font-semibold">Impacto ante una falla</h3>
+      {automatico && <p className="mb-2 text-sm text-error">Está fuera de servicio: estos son los afectados.</p>}
+      {abierto ? (
+        <ImpactoPanel tipo={tipo} id={id} nombre={nombre} />
+      ) : (
+        <Boton variante="secundario" className="px-3 py-1.5 text-sm" onClick={() => setAbierto(true)}>
+          <Activity className="size-4" aria-hidden /> Ver qué depende de {nombre}
+        </Boton>
+      )}
+    </section>
   );
 }

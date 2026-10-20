@@ -13,6 +13,11 @@ import { MisOrdenes } from './pages/MisOrdenes';
 import { Usuarios } from './pages/Usuarios';
 import { MiCuenta } from './pages/MiCuenta';
 import { PaginaMapa } from './mapa/PaginaMapa';
+import { ListaClientes } from './clientes/ListaClientes';
+import { FormCliente } from './clientes/FormCliente';
+import { FichaCliente } from './clientes/FichaCliente';
+import { PaginaTopologia } from './topologia/PaginaTopologia';
+import { Configuracion } from './pages/Configuracion';
 import { NoEncontrado } from './pages/SinAcceso';
 
 const clienteQuery = new QueryClient({
@@ -73,6 +78,41 @@ export function App() {
                 }
               />
               <Route path="mapa" element={<PaginaMapa />} />
+              <Route path="topologia" element={<PaginaTopologia />} />
+              <Route
+                path="clientes"
+                element={
+                  <RequiereRol roles={['supervisor_red', 'atencion_cliente']}>
+                    <ListaClientes />
+                  </RequiereRol>
+                }
+              />
+              <Route
+                path="clientes/nuevo"
+                element={
+                  <RequiereRol roles={['atencion_cliente']}>
+                    <FormCliente />
+                  </RequiereRol>
+                }
+              />
+              {/* La ficha la ven también los técnicos con una orden de ese cliente (lo decide la base). */}
+              <Route path="clientes/:id" element={<FichaCliente />} />
+              <Route
+                path="clientes/:id/editar"
+                element={
+                  <RequiereRol roles={['atencion_cliente']}>
+                    <FormCliente />
+                  </RequiereRol>
+                }
+              />
+              <Route
+                path="configuracion"
+                element={
+                  <RequiereRol roles={['administrador']}>
+                    <Configuracion />
+                  </RequiereRol>
+                }
+              />
               <Route path="mi-cuenta" element={<MiCuenta />} />
               <Route path="*" element={<NoEncontrado />} />
             </Route>

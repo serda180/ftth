@@ -2,6 +2,7 @@
 import { supabase } from '../lib/supabase';
 import type {
   CableMapa,
+  ClienteMapa,
   Clase,
   Coordenada,
   EstadoElemento,
@@ -50,6 +51,10 @@ export function cargarCables(v: Vista, f: Filtros) {
 
 export function cargarZonas(v: Vista) {
   return rpc<ZonaMapa[]>('mapa_zonas', { p_oeste: v.oeste, p_sur: v.sur, p_este: v.este, p_norte: v.norte });
+}
+
+export function cargarClientesMapa(v: Vista) {
+  return rpc<ClienteMapa[]>('mapa_clientes', { p_oeste: v.oeste, p_sur: v.sur, p_este: v.este, p_norte: v.norte });
 }
 
 export const fichaElemento = (id: string) => rpc<FichaElemento | null>('ficha_elemento', { p_id: id });

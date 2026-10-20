@@ -6,7 +6,7 @@ import { formatearDistancia } from './geo';
 import { mensajeError } from '../lib/errores';
 import { formatearFecha } from '../lib/formato';
 import { Aviso, Boton, Cargando, DatoFicha } from '../components/ui';
-import { InsigniaEstado } from './FichaElementoPanel';
+import { InsigniaEstado, SeccionImpacto } from './FichaElementoPanel';
 
 const ESTADO_HILO: Record<HiloFicha['estado'], string> = {
   libre: 'Libre',
@@ -110,6 +110,8 @@ export function FichaCablePanel({
           <DatoFicha etiqueta="Observaciones">{f.observaciones}</DatoFicha>
         </dl>
       </section>
+
+      <SeccionImpacto tipo="cable" id={f.id} nombre={f.codigo} automatico={f.estado === 'fuera_servicio'} />
 
       <section className="mt-6">
         <h3 className="mb-2 font-cond text-lg font-semibold">Hilos</h3>

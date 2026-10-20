@@ -6,6 +6,7 @@ import {
   Marker,
   Polygon,
   Polyline,
+  Popup,
   TileLayer,
   Tooltip,
   useMap,
@@ -14,7 +15,8 @@ import {
 import L from 'leaflet';
 import type { Catalogos } from './api';
 import { iconoElemento, iconoGrupo, iconoPunto } from './simbolos';
-import { estiloCable, type CableMapa, type Coordenada, type ElementoMapa, type RespuestaElementos, type Seleccion, type Vista, type ZonaMapa } from './tipos';
+import { Link } from 'react-router';
+import { COLOR_CLIENTE, estiloCable, type CableMapa, type ClienteMapa, type Coordenada, type ElementoMapa, type RespuestaElementos, type Seleccion, type Vista, type ZonaMapa } from './tipos';
 import { formatearDistancia, longitudM } from './geo';
 
 const aLatLng = (c: Coordenada): [number, number] => [c[1], c[0]];
@@ -33,6 +35,7 @@ type Props = {
   elementos: RespuestaElementos | undefined;
   cables: CableMapa[];
   zonas: ZonaMapa[];
+  clientes: ClienteMapa[];
   seleccion: Seleccion;
   /** Elemento oculto mientras se mueve (se dibuja el borrador en su lugar). */
   ocultarElemento: string | null;
@@ -80,6 +83,7 @@ export function MapaLienzo(p: Props) {
       ))}
 
       <CapaCables {...p} />
+      <CapaClientes {...p} />
       <CapaElementos {...p} />
       <CapaBorrador {...p} />
 
@@ -327,6 +331,46 @@ function CapaBorrador({ borrador, alMoverPunto, alMoverVertice, alInsertarVertic
             },
           }}
         />
+      ))}
+    </>
+  );
+}
+
+/** Clientes como puntos por estado; desde zoom 17, la acometida a su NAP. */
+function CapaClientes({ clientes, capturaClics, alClicMapa }: Props) {
+  const mapa = useMap();
+  const conLineas = mapa.getZoom() >= 17;
+  return (
+    <>
+      {conLineas &&
+        clientes
+          .filter((c) => c.nap_lng != null && c.nap_lat != null)
+          .map((c) => (
+            <Polyline
+              key={`l${c.id}`}
+              positions={[[c.lat, c.lng], [c.nap_lat!, c.nap_lng!]]}
+              pathOptions={{ color: '#7b4cc2', weight: 1.5, dashArray: '3 4', opacity: 0.8 }}
+              interactive={false}
+            />
+          ))}
+      {clientes.map((c) => (
+        <CircleMarker
+          key={c.id}
+          center={[c.lat, c.lng]}
+          radius={5}
+          pathOptions={{ color: '#fff', weight: 1.5, fillColor: COLOR_CLIENTE[c.estado], fillOpacity: 1, bubblingMouseEvents: false }}
+          eventHandlers={capturaClics ? { click: (ev: L.LeafletMouseEvent) => alClicMapa(deLatLng(ev.latlng)) } : {}}
+        >
+          {!capturaClics && (
+            <Popup>
+              <div className="font-medium">{c.nombre}</div>
+              <div className="text-sm text-tenue">
+                {c.codigo} · {c.nap_codigo ? `${c.nap_codigo} puerto ${c.puerto}` : 'sin puerto'}
+              </div>
+              <Link to={`/clientes/${c.id}`} className="text-sm text-acento">Ver ficha</Link>
+            </Popup>
+          )}
+        </CircleMarker>
       ))}
     </>
   );

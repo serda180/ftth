@@ -2,7 +2,7 @@
 
 Plataforma web para administrar la red de fibra óptica de un ISP: mapa de la red, NAP y puertos, clientes, solicitudes de instalación con factibilidad, órdenes de trabajo para técnicos, inventario y estadísticas.
 
-**Estado:** Etapas 1 y 2 de 6 completas (base de datos, autenticación, roles, panel y mapa GIS). Ver [PROGRESO.md](PROGRESO.md).
+**Estado:** Etapas 1 a 3 de 6 completas (base de datos, autenticación, roles, panel, mapa GIS, clientes, puertos, conexiones y topología). Ver [PROGRESO.md](PROGRESO.md).
 
 ## Arquitectura
 
