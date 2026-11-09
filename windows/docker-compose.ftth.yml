@@ -1,0 +1,78 @@
+# Plataforma FTTH en Windows (Docker Desktop), para la red local.
+# Se aplica encima de supabase-docker/docker-compose.yml (copia oficial sin tocar).
+# No lo ejecute a mano: use ftth.ps1, que pasa los archivos y el .env correctos.
+#
+# Rutas relativas a la carpeta supabase-docker/ (directorio del proyecto).
+#
+#   Celulares y PCs ──https──▶ proxy (Caddy, puertos 80/443, certificado local)
+#                                 └──▶ web (nginx: aplicación + /auth /rest /storage /functions)
+#                                          └──▶ api-gw (Envoy de Supabase, solo red interna)
+#
+# Studio (panel de Supabase) queda solo en este PC: http://localhost:8000
+
+services:
+  # El gateway y el pooler solo escuchan en este PC, nunca en la red.
+  api-gw:
+    ports: !override
+      - "127.0.0.1:8000:8000"
+
+  supavisor:
+    ports: !override
+      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:6543:6543"
+
+  # Datos en volúmenes de Docker (dentro de WSL2), no en carpetas de Windows:
+  # Postgres no funciona bien sobre NTFS (permisos y rendimiento).
+  db:
+    volumes:
+      - ftth-db:/var/lib/postgresql/data
+
+  storage:
+    volumes:
+      - ftth-archivos:/var/lib/storage
+
+  imgproxy:
+    volumes:
+      - ftth-archivos:/var/lib/storage
+
+  functions:
+    environment:
+      SITE_URL: ${SITE_URL}
+
+  web:
+    container_name: ftth-web
+    image: ftth-web:local
+    build:
+      context: ../../frontend
+    restart: unless-stopped
+    depends_on:
+      api-gw:
+        condition: service_healthy
+    environment:
+      SUPABASE_URL: https://${FTTH_HOST}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      # Activa el proxy interno hacia Supabase: la app y la API comparten dirección.
+      API_INTERNA: http://api-gw:8000
+
+  proxy:
+    container_name: ftth-proxy
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      FTTH_HOST: ${FTTH_HOST}
+    volumes:
+      - ../Caddyfile:/etc/caddy/Caddyfile:ro
+      - ftth-certificados:/data
+      - ftth-caddy-config:/config
+
+volumes:
+  ftth-db:
+  ftth-archivos:
+  ftth-certificados:
+  ftth-caddy-config:

@@ -9,7 +9,7 @@ Plataforma web para administrar la red de fibra óptica de un ISP: mapa de la re
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS, servido por Nginx en Docker.
 - **Backend**: Supabase self-hosted: PostgreSQL 15 + PostGIS, Auth, API REST, Storage, Edge Functions.
 - **Seguridad**: Row Level Security en todas las tablas; roles en tabla propia; la clave de servicio solo vive en el servidor.
-- **Despliegue**: VPS con Dokploy, un servicio para Supabase y otro para el frontend.
+- **Despliegue**: VPS con Dokploy, un servicio para Supabase y otro para el frontend; o un PC con Windows y Docker Desktop para la red local ([windows/LEEME.md](windows/LEEME.md)).
 
 Red modelada: OLT (puerto PON) → troncal (hilo) → NAP con splitter interno → acometida → cliente.
 
@@ -43,6 +43,7 @@ Abre el frontend en http://localhost:5173 con datos de demostración. Instruccio
 - [Estados y flujos](docs/estados.md)
 - [Decisiones de diseño](docs/decisiones.md)
 - [Despliegue en el VPS](docs/despliegue.md)
+- [Instalación en Windows (red local)](windows/LEEME.md)
 
 ## Datos de demostración
 

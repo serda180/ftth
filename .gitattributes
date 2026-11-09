@@ -1,0 +1,9 @@
+# Finales de línea fijos: los scripts que corren dentro de contenedores Linux
+# deben tener LF aunque el repositorio se clone en Windows.
+* text=auto eol=lf
+# Scripts de Windows: se guardan tal cual (CRLF y UTF-8 con BOM, que necesita
+# PowerShell 5.1 para leer bien los acentos), también en la descarga ZIP.
+*.ps1 -text
+*.cmd -text
+*.png binary
+*.ico binary
