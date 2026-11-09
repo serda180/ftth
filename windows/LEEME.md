@@ -1,66 +1,84 @@
-# Plataforma FTTH en Windows (red local)
+# Plataforma FTTH en Windows
 
-Instalación en un PC con **Windows 10/11 Pro** y **Docker Desktop**, para usar el
-sistema dentro de la red de la oficina (PCs y celulares conectados al mismo Wi‑Fi o
-por VPN). Es el mismo sistema que en un VPS, empaquetado para Windows.
+Se instala en un PC con **Windows 10/11 Pro** de la oficina (el "PC servidor") y se usa
+desde cualquier PC o celular conectado a la misma red (cable, Wi‑Fi o VPN).
 
-## Requisitos
+## Requisitos del PC servidor
 
-- Windows 10 (22H2) u 11, edición Pro, con virtualización activada en la BIOS.
+- Windows 10 (22H2) u 11, edición Pro, con la virtualización activada en la BIOS.
 - 8 GB de RAM como mínimo (16 GB recomendado) y 20 GB libres en disco.
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) con el motor WSL2.
-  Si no está, el instalador ofrece instalarlo con `winget`.
-- Internet durante la instalación (descarga unos 3 GB de imágenes).
-- Una IP fija para el PC (reserva DHCP en el router o IP estática).
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/). Si no está, el instalador ofrece instalarlo.
+- Internet durante la instalación (descarga unos 3 GB).
+- IP fija: reserve la IP del PC en el router.
 
-## Instalar
+## Instalar (una sola vez)
 
-1. Descomprima el repositorio en una carpeta sin espacios raros, por ejemplo `C:\FTTH`.
-2. Abra la carpeta `windows` y haga doble clic en **Instalar.cmd** (pide permisos de administrador).
-3. Confirme la IP del PC y siga las preguntas. Al final crea el primer administrador.
+1. Descomprima el sistema en `C:\ftth`.
+2. Doble clic en **`C:\ftth\INSTALAR.cmd`** y acepte el permiso de administrador.
+3. Responda las preguntas (casi todas basta con Enter) y cree el primer administrador.
 
-El instalador genera claves propias, levanta Supabase y la aplicación, crea la base de
-datos, abre los puertos 80 y 443 en el firewall (red privada) e instala el certificado
-HTTPS en este PC.
+La primera vez tarda de 10 a 20 minutos. Si se interrumpe, vuelva a ejecutar `INSTALAR.cmd`:
+conserva las claves y los datos.
 
-## Acceso
+## Usar
 
-| Qué | Dirección |
+Doble clic en el ícono **Plataforma FTTH** del escritorio. Si hace falta, inicia Docker
+Desktop y la plataforma (aparece una ventana pequeña con el avance) y abre el navegador.
+
+Si eligió el inicio automático, la plataforma arranca sola al iniciar sesión en Windows.
+
+En el **menú Inicio → Plataforma FTTH** están además:
+
+| Acceso | Para qué |
 |---|---|
-| Aplicación (PCs y celulares) | `https://IP-DEL-PC` |
-| Certificado para otros equipos | `http://IP-DEL-PC/certificado.crt` |
-| Studio de Supabase (solo desde este PC) | `http://localhost:8000` (usuario y clave al final de la instalación, también en `supabase-docker\.env`) |
+| Crear usuario | Usuario con contraseña y rol, sin necesidad de correo |
+| Respaldar | Base de datos, fotos y configuración en `Documentos\FTTH-respaldos` (guarda los últimos 14) |
+| Estado | Si cada servicio está en marcha y las direcciones de acceso |
+| Detener | Apaga la plataforma (los datos se conservan) |
+| Actualizar | Instala una versión nueva (respalda antes) |
 
-Cada PC o celular instala el certificado una sola vez; sin él, el navegador muestra
-una advertencia y el GPS no funciona.
+Docker Desktop necesita una sesión de Windows iniciada: deje el PC servidor encendido y
+con la sesión abierta (bloqueada está bien).
 
-- **Android**: abrir `http://IP-DEL-PC/certificado.crt` → Ajustes → Seguridad → Cifrado y
-  credenciales → Instalar un certificado → Certificado de CA.
+## Entrar desde otros PCs y celulares
+
+Dirección: `https://IP-DEL-PC-SERVIDOR` (la muestran el instalador y "Estado").
+
+Cada equipo instala una vez el certificado de la oficina desde
+`http://IP-DEL-PC-SERVIDOR/certificado.crt`. Sin él, el navegador muestra una advertencia
+y el GPS no funciona.
+
+- **Android**: Ajustes → Seguridad → Cifrado y credenciales → Instalar un certificado →
+  Certificado de CA → elegir el archivo descargado.
 - **iPhone**: abrir el enlace en Safari → Ajustes → Perfil descargado → Instalar; luego
   Ajustes → General → Información → Ajustes de confianza de certificados → activar.
-- **Otros PCs con Windows**: doble clic en el archivo → Instalar certificado → Equipo local →
+- **PCs con Windows**: doble clic en el archivo → Instalar certificado → Equipo local →
   "Entidades de certificación raíz de confianza".
 
-## Uso diario
+En el celular, el menú del navegador → **Agregar a pantalla de inicio** deja la aplicación
+como un ícono más.
 
-| Archivo | Para qué |
-|---|---|
-| `Estado.cmd` | Ver si todo está en marcha y las direcciones |
-| `Crear-usuario.cmd` | Crear usuarios con contraseña (sin necesidad de correo) |
-| `Respaldar.cmd` | Respaldo de base de datos, fotos y configuración en `Documentos\FTTH-respaldos` |
-| `Actualizar.cmd` | Aplicar una versión nueva (respalda antes) |
+## Actualizar
 
-Más opciones con PowerShell: `powershell -ExecutionPolicy Bypass -File ftth.ps1 ayuda`
-(`logs`, `detener`, `iniciar`, `cambiar-ip`, `programar-respaldo`, `certificado`).
+Descomprima la versión nueva sobre `C:\ftth` (reemplazar archivos) y use **Actualizar**
+en el menú Inicio. La configuración y los datos se conservan.
 
-## Arranque automático
+## Avanzado
 
-En Docker Desktop → Settings → General, active **Start Docker Desktop when you sign in**.
-Los servicios se levantan solos cuando Docker arranca. Docker Desktop necesita que haya
-una sesión de Windows iniciada: deje el PC con la sesión abierta (bloqueada está bien) o
-configure el inicio de sesión automático.
+Todo lo hace `windows\ftth.ps1`. Desde PowerShell en esa carpeta:
 
-## Cómo funciona
+```powershell
+powershell -ExecutionPolicy Bypass -File ftth.ps1 ayuda
+```
+
+Acciones extra: `logs <servicio>`, `cambiar-ip -Ip 192.168.1.60`, `programar-respaldo 13:00`,
+`certificado`, `accesos` y `desinstalar`. El registro del ícono de inicio queda en
+`%LOCALAPPDATA%\PlataformaFTTH\inicio.log`.
+
+Studio (panel de Supabase, solo en el PC servidor): `http://localhost:8000`, con el usuario
+y la clave que muestra "Estado".
+
+### Cómo funciona
 
 ```
 Celulares y PCs ──https──▶ proxy (Caddy, 80/443, certificado local)
@@ -70,6 +88,7 @@ Celulares y PCs ──https──▶ proxy (Caddy, 80/443, certificado local)
 
 - `supabase-docker/`: copia fija y sin modificar del Supabase self-hosted oficial (ver `ORIGEN.md`).
 - `docker-compose.ftth.yml`: lo propio de esta instalación (aplicación, proxy HTTPS,
-  volúmenes de datos, puertos solo locales para Studio y la base de datos).
-- Los datos viven en volúmenes de Docker (`ftth_ftth-db`, `ftth_ftth-archivos`), no en
-  carpetas de Windows. **No ejecute `docker compose down -v`**: borra los datos.
+  volúmenes de datos, Studio y base de datos solo accesibles desde el PC servidor).
+- Las claves quedan en `supabase-docker\.env`: no lo borre ni lo comparta.
+- Los datos viven en volúmenes de Docker (`ftth_ftth-db`, `ftth_ftth-archivos`). No use
+  `docker compose down -v`: los borra.

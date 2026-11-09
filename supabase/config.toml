@@ -1,6 +1,6 @@
-# Configuración del entorno LOCAL de Supabase (supabase start).
-# En producción la configuración va en las variables del Supabase self-hosted
-# (ver docs/despliegue.md).
+# Configuración del Supabase LOCAL que usa la integración continua
+# (supabase db start / supabase test db). La instalación real en Windows
+# se configura en windows/supabase-docker/.env (lo genera windows/ftth.ps1).
 project_id = "ftth-gestion"
 
 [api]

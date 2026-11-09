@@ -1,6 +1,6 @@
 #!/bin/sh
 # Genera /config.js con la configuración pública al arrancar el contenedor.
-# Así la misma imagen sirve para cualquier entorno (variables de Dokploy).
+# Así la misma imagen sirve para cualquier entorno (variables del docker-compose).
 # Solo se usan valores PÚBLICOS: nunca pasar aquí la service_role key.
 set -eu
 

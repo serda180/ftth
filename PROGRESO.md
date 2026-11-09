@@ -23,7 +23,7 @@ Estados: **implementado y probado** · **implementado sin pruebas** · **solo in
 | Frontend: "Mis órdenes" del técnico (lectura) | implementado sin pruebas | Cambiar estado y cerrar órdenes desde el teléfono llega en la Etapa 4. |
 | Frontend: utilidades (RUT, formatos CLP y fechas) | implementado y probado | Pruebas unitarias ejecutadas. |
 | Docker del frontend (Nginx, `/config.js`, CSP) | implementado sin pruebas | Script de arranque probado; la imagen no se construyó. |
-| Entorno local con un comando (`scripts/dev.sh`) | implementado sin pruebas | |
+| Instalación en Windows con un clic (`INSTALAR.cmd`, `windows/ftth.ps1`) | implementado sin probar en Windows | Reemplaza al entorno local con `dev.sh` y a la instalación en VPS, retirados. |
 | CI en GitHub Actions | implementado sin pruebas | Corre pgTAP y la compilación del frontend en cada push. |
 
 ## Etapa 2 — Mapa GIS
@@ -87,13 +87,13 @@ Estados: **implementado y probado** · **implementado sin pruebas** · **solo in
 | Etapa | Estado |
 |---|---|
 | 5 — Inventario (interfaz), estadísticas, auditoría (interfaz) | pendiente (reglas de inventario listas) |
-| 6 — Importación/exportación, respaldos, E2E, despliegue | pendiente |
+| 6 — Importación/exportación, respaldos, E2E, despliegue | en curso: instalación en Windows lista (`windows/`, con respaldos manuales y programables); faltan importación/exportación y E2E |
 
 ## Verificación pendiente (Etapas 1 a 4)
 
-Primera ejecución con Docker y npm disponibles:
+Primera ejecución en el PC con Windows:
 
-1. `./scripts/dev.sh` levanta todo sin errores.
+1. `INSTALAR.cmd` termina sin errores y el ícono "Plataforma FTTH" abre la aplicación.
 2. `npx supabase@2 test db` pasa las 175 pruebas en Supabase real (con PostGIS de verdad), y `bash supabase/tests/concurrencia/asignacion_puertos.sh` pasa.
 3. `cd frontend && npm run typecheck && npm test && npm run build` pasa.
 4. Crear administrador, invitar un técnico y un usuario de atención, y comprobar que el técnico no ve el panel ni clientes ajenos.

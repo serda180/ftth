@@ -3,11 +3,15 @@
   Instala y administra la Plataforma FTTH en Windows 10/11 con Docker Desktop.
 
 .DESCRIPTION
+  Lo normal es no usar este script a mano: INSTALAR.cmd lo ejecuta y deja accesos
+  directos en el escritorio y en el menú Inicio ("Plataforma FTTH").
+
   Uso:  powershell -ExecutionPolicy Bypass -File ftth.ps1 <accion> [opciones]
 
   Acciones:
     instalar            Primera instalación (o reparar una existente). Opciones: -Ip, -Demo
-    iniciar             Levanta todos los servicios
+    abrir               Inicia Docker Desktop y la plataforma si hace falta, y abre el navegador
+    iniciar             Levanta todos los servicios (en consola)
     detener             Detiene todos los servicios (los datos se conservan)
     estado              Muestra el estado de cada servicio y las direcciones de acceso
     logs [servicio]     Últimas líneas de registro (p. ej.: logs auth, logs web, logs db)
@@ -17,6 +21,8 @@
     actualizar          Respalda, reconstruye la aplicación y aplica migraciones nuevas
     cambiar-ip          Cambia la IP con la que se accede al sistema. Opción: -Ip
     certificado         Vuelve a exportar e instalar el certificado raíz en este PC
+    accesos             Vuelve a crear los accesos directos
+    desinstalar         Quita accesos, firewall y contenedores (pregunta antes de borrar datos)
 
   Requiere Windows 10/11 Pro con Docker Desktop (motor WSL2, contenedores Linux).
 #>
@@ -26,7 +32,8 @@ param(
   [Parameter(Position = 1)][string]$Argumento,
   [string]$Ip,
   [switch]$Demo,
-  [string]$Destino
+  [string]$Destino,
+  [switch]$Pausa
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,6 +47,8 @@ $OverrideFile = Join-Path $Win 'docker-compose.ftth.yml'
 $Certificado = Join-Path $Win 'certificado-ftth.crt'
 $Migraciones = Join-Path $Raiz 'supabase\migrations'
 $UrlLocal = 'http://localhost:8000'   # gateway de Supabase, solo accesible desde este PC
+$Icono = Join-Path $Win 'ftth.ico'
+$Registro = Join-Path $env:LOCALAPPDATA 'PlataformaFTTH\inicio.log'
 $Utf8SinBom = New-Object System.Text.UTF8Encoding($false)
 
 # ----------------------------------------------------------------------------
@@ -239,7 +248,7 @@ function Comprobar-Docker {
       & winget install -e --id Docker.DockerDesktop --accept-package-agreements --accept-source-agreements
       Write-Host ''
       Aviso 'Docker Desktop quedó instalado. Reinicie Windows, abra Docker Desktop una vez (acepte los términos)'
-      Aviso 'y vuelva a ejecutar Instalar.cmd.'
+      Aviso 'y vuelva a ejecutar INSTALAR.cmd.'
       exit 0
     }
     Falla 'Instale Docker Desktop desde https://www.docker.com/products/docker-desktop/ y vuelva a ejecutar.'
@@ -364,7 +373,7 @@ function Cargar-Demo {
 
 function Configurar-Firewall {
   Paso 'Firewall de Windows'
-  if (-not (Es-Administrador)) { Aviso 'Sin permisos de administrador: no se configuró el firewall (use Instalar.cmd).'; return }
+  if (-not (Es-Administrador)) { Aviso 'Sin permisos de administrador: no se configuró el firewall (use INSTALAR.cmd).'; return }
   $nombre = 'Plataforma FTTH (HTTP/HTTPS)'
   if (-not (Get-NetFirewallRule -DisplayName $nombre -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName $nombre -Direction Inbound -Protocol TCP -LocalPort 80, 443 `
@@ -511,6 +520,202 @@ function Programar-Respaldo([string]$Hora) {
 }
 
 # ----------------------------------------------------------------------------
+# Inicio con un clic (ventana pequeña, sin consola)
+# ----------------------------------------------------------------------------
+function Esperar([double]$Segundos) {
+  $fin = (Get-Date).AddSeconds($Segundos)
+  do {
+    if ('System.Windows.Forms.Application' -as [type]) { [System.Windows.Forms.Application]::DoEvents() }
+    Start-Sleep -Milliseconds 100
+  } while ((Get-Date) -lt $fin)
+}
+
+# Ejecuta docker sin ventana, manteniendo viva la ventana de progreso.
+function Ejecutar-Docker([string[]]$Argumentos, [int]$Segundos = 120) {
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = (Get-Command docker).Source
+  $psi.Arguments = ($Argumentos | ForEach-Object {
+      if ($_ -eq '' -or $_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ } }) -join ' '
+  $psi.UseShellExecute = $false
+  $psi.CreateNoWindow = $true
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $p = [System.Diagnostics.Process]::Start($psi)
+  $salida = $p.StandardOutput.ReadToEndAsync()
+  $errores = $p.StandardError.ReadToEndAsync()
+  $limite = (Get-Date).AddSeconds($Segundos)
+  while (-not $p.HasExited) {
+    if ((Get-Date) -gt $limite) { try { $p.Kill() } catch { }; break }
+    Esperar 0.25
+  }
+  $p.WaitForExit()
+  [pscustomobject]@{ Codigo = $p.ExitCode; Salida = ($salida.Result + $errores.Result) }
+}
+
+function Anotar([string]$Texto) {
+  try {
+    New-Item -ItemType Directory -Force -Path (Split-Path $Registro) | Out-Null
+    Add-Content -Path $Registro -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  $Texto" -Encoding UTF8
+  } catch { }
+}
+
+function Accion-Abrir([switch]$Silencioso) {
+  Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+  [System.Windows.Forms.Application]::EnableVisualStyles()
+  $ventana = $null
+  $etiqueta = $null
+  if (-not $Silencioso) {
+    $ventana = New-Object System.Windows.Forms.Form
+    $ventana.Text = 'Plataforma FTTH'
+    $ventana.ClientSize = New-Object System.Drawing.Size(420, 110)
+    $ventana.StartPosition = 'CenterScreen'
+    $ventana.FormBorderStyle = 'FixedDialog'
+    $ventana.MaximizeBox = $false
+    $ventana.MinimizeBox = $false
+    $ventana.TopMost = $true
+    if (Test-Path $Icono) { $ventana.Icon = New-Object System.Drawing.Icon($Icono) }
+    $etiqueta = New-Object System.Windows.Forms.Label
+    $etiqueta.SetBounds(20, 20, 380, 44)
+    $etiqueta.Font = New-Object System.Drawing.Font('Segoe UI', 10)
+    $barra = New-Object System.Windows.Forms.ProgressBar
+    $barra.SetBounds(20, 72, 380, 16)
+    $barra.Style = 'Marquee'
+    $barra.MarqueeAnimationSpeed = 30
+    $ventana.Controls.Add($etiqueta)
+    $ventana.Controls.Add($barra)
+    $ventana.Show()
+  }
+  $avisar = {
+    param([string]$t)
+    Anotar $t
+    if ($etiqueta) { $etiqueta.Text = $t; [System.Windows.Forms.Application]::DoEvents() }
+  }
+
+  try {
+    & $avisar 'Comprobando Docker Desktop...'
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw 'Docker Desktop no está instalado. Ejecute INSTALAR.cmd.' }
+    if (-not (Test-Path $EnvFile)) { throw 'La plataforma aún no está instalada. Ejecute INSTALAR.cmd.' }
+
+    if ((Ejecutar-Docker @('info') 30).Codigo -ne 0) {
+      & $avisar 'Iniciando Docker Desktop (puede tardar un par de minutos)...'
+      $exe = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
+      if (Test-Path $exe) { Start-Process $exe | Out-Null }
+      $listo = $false
+      for ($i = 0; $i -lt 80; $i++) {
+        Esperar 3
+        if ((Ejecutar-Docker @('info') 30).Codigo -eq 0) { $listo = $true; break }
+      }
+      if (-not $listo) { throw 'Docker Desktop no terminó de arrancar. Ábralo, espere a que diga "Engine running" y vuelva a intentar.' }
+    }
+
+    & $avisar 'Iniciando la plataforma...'
+    $r = Ejecutar-Docker ((Argumentos-Compose) + @('up', '-d', '--wait', '--wait-timeout', '300')) 420
+    if ($r.Codigo -ne 0) {
+      $ultimas = (($r.Salida -split "`n") | Where-Object { $_.Trim() } | Select-Object -Last 6) -join "`n"
+      Anotar $r.Salida
+      throw "Algún servicio no arrancó bien. Abra 'Estado' en el menú Inicio > Plataforma FTTH.`n`n$ultimas"
+    }
+    Anotar 'Plataforma en marcha'
+    if (-not $Silencioso) {
+      & $avisar 'Abriendo el navegador...'
+      Start-Process 'https://localhost'
+      Esperar 1
+    }
+  } catch {
+    Anotar "ERROR: $($_.Exception.Message)"
+    if ($ventana) { $ventana.Close() }
+    if (-not $Silencioso) {
+      [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'Plataforma FTTH',
+        [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    }
+    exit 1
+  } finally {
+    if ($ventana) { $ventana.Close() }
+  }
+}
+
+# ----------------------------------------------------------------------------
+# Accesos directos
+# ----------------------------------------------------------------------------
+function Rutas-Accesos {
+  $comun = Es-Administrador
+  $carpeta = { param($comunNombre, $propioNombre) [Environment]::GetFolderPath($(if ($comun) { $comunNombre } else { $propioNombre })) }
+  [pscustomobject]@{
+    Escritorio = & $carpeta 'CommonDesktopDirectory' 'Desktop'
+    Menu       = Join-Path (& $carpeta 'CommonPrograms' 'Programs') 'Plataforma FTTH'
+    Inicio     = & $carpeta 'CommonStartup' 'Startup'
+  }
+}
+
+function Nuevo-Acceso([string]$Ruta, [string]$Accion, [string]$Descripcion, [switch]$Oculto) {
+  $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+  $atajo = (New-Object -ComObject WScript.Shell).CreateShortcut($Ruta)
+  $atajo.TargetPath = $ps
+  $opciones = if ($Oculto) { '-WindowStyle Hidden ' } else { '' }
+  $final = if ($Oculto) { '' } else { ' -Pausa' }
+  $atajo.Arguments = "-NoProfile -ExecutionPolicy Bypass $opciones-File `"$PSCommandPath`" $Accion$final"
+  $atajo.WorkingDirectory = $Win
+  $atajo.Description = $Descripcion
+  if (Test-Path $Icono) { $atajo.IconLocation = "$Icono,0" }
+  $atajo.WindowStyle = $(if ($Oculto) { 7 } else { 1 })
+  $atajo.Save()
+}
+
+function Crear-Accesos([bool]$AutoInicio) {
+  Paso 'Accesos directos'
+  $r = Rutas-Accesos
+  New-Item -ItemType Directory -Force -Path $r.Menu | Out-Null
+  $abrir = 'Inicia la Plataforma FTTH y la abre en el navegador'
+  Nuevo-Acceso (Join-Path $r.Escritorio 'Plataforma FTTH.lnk') 'abrir' $abrir -Oculto
+  Nuevo-Acceso (Join-Path $r.Menu 'Plataforma FTTH.lnk') 'abrir' $abrir -Oculto
+  Nuevo-Acceso (Join-Path $r.Menu 'Crear usuario.lnk') 'crear-usuario' 'Crea un usuario con contraseña y rol'
+  Nuevo-Acceso (Join-Path $r.Menu 'Respaldar.lnk') 'respaldar' 'Respaldo de base de datos, fotos y configuración'
+  Nuevo-Acceso (Join-Path $r.Menu 'Estado.lnk') 'estado' 'Estado de los servicios y direcciones de acceso'
+  Nuevo-Acceso (Join-Path $r.Menu 'Detener.lnk') 'detener' 'Detiene la plataforma (los datos se conservan)'
+  Nuevo-Acceso (Join-Path $r.Menu 'Actualizar.lnk') 'actualizar' 'Instala una versión nueva (respalda antes)'
+  Ok "Ícono 'Plataforma FTTH' en el escritorio y carpeta 'Plataforma FTTH' en el menú Inicio"
+
+  $auto = Join-Path $r.Inicio 'Plataforma FTTH.lnk'
+  if ($AutoInicio) {
+    Nuevo-Acceso $auto 'iniciar-silencioso' 'Inicia la Plataforma FTTH al iniciar sesión' -Oculto
+    Ok 'La plataforma se iniciará sola al iniciar sesión en Windows'
+  } elseif (Test-Path $auto) { Remove-Item $auto -Force }
+}
+
+function Accion-Desinstalar {
+  Write-Host 'Desinstalar la Plataforma FTTH' -ForegroundColor Yellow
+  if (-not (Preguntar-SiNo '¿Quitar la plataforma de este PC?' $false)) { return }
+  if ((Get-Command docker -ErrorAction SilentlyContinue) -and (Test-Path $EnvFile)) {
+    Paso 'Deteniendo y quitando contenedores'
+    Compose @('down', '--remove-orphans') | Out-Null
+  }
+  Paso 'Quitando accesos directos, firewall y certificado'
+  $r = Rutas-Accesos
+  foreach ($a in (Join-Path $r.Escritorio 'Plataforma FTTH.lnk'), (Join-Path $r.Inicio 'Plataforma FTTH.lnk')) {
+    if (Test-Path $a) { Remove-Item $a -Force }
+  }
+  if (Test-Path $r.Menu) { Remove-Item $r.Menu -Recurse -Force }
+  if (Es-Administrador) {
+    Get-NetFirewallRule -DisplayName 'Plataforma FTTH (HTTP/HTTPS)' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+    if (Test-Path $Certificado) {
+      $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($Certificado)
+      Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Thumbprint -eq $cert.Thumbprint } | Remove-Item
+    }
+  }
+  Unregister-ScheduledTask -TaskName 'Plataforma FTTH - Respaldo diario' -Confirm:$false -ErrorAction SilentlyContinue
+  Ok 'Listo'
+  Write-Host ''
+  Aviso 'Los datos (base de datos y fotos) siguen guardados en Docker.'
+  $r2 = Read-Host 'Para BORRARLOS definitivamente escriba BORRAR (o Enter para conservarlos)'
+  if ($r2 -ceq 'BORRAR') {
+    foreach ($v in 'ftth-db', 'ftth-archivos', 'ftth-certificados', 'ftth-caddy-config') {
+      Invoke-Nativo 'docker' @('volume', 'rm', "ftth_$v") | Out-Null
+    }
+    Ok 'Datos borrados'
+  } else { Ok 'Datos conservados: si vuelve a instalar en esta carpeta, reaparecen.' }
+}
+
+# ----------------------------------------------------------------------------
 # Resumen
 # ----------------------------------------------------------------------------
 function Mostrar-Accesos {
@@ -550,6 +755,7 @@ function Accion-Instalar {
   if ($Demo -or (Preguntar-SiNo '¿Cargar datos de demostración para probar?' $false)) { Cargar-Demo }
   Configurar-Firewall
   Instalar-Certificado
+  Crear-Accesos (Preguntar-SiNo '¿Iniciar la plataforma automáticamente al iniciar sesión en Windows?')
 
   $r = Psql @('-tA', '-c', 'select count(*) from public.usuario_roles where rol = ''administrador''')
   if ($r.Codigo -eq 0 -and [int]($r.Salida.Trim()) -eq 0) {
@@ -558,8 +764,9 @@ function Accion-Instalar {
     Crear-Usuario ''
   }
   Mostrar-Accesos
-  Info 'Para que todo arranque solo: en Docker Desktop active "Start Docker Desktop when you sign in".'
-  Info 'Respaldo diario automático: ftth.ps1 programar-respaldo'
+  Info "Para entrar después: doble clic en el ícono 'Plataforma FTTH' del escritorio."
+  if (Preguntar-SiNo '¿Programar un respaldo automático diario a las 13:00?') { Programar-Respaldo '13:00' }
+  if (Preguntar-SiNo '¿Abrir la plataforma ahora en el navegador?') { Start-Process 'https://localhost' }
 }
 
 function Accion-Actualizar {
@@ -588,9 +795,14 @@ function Accion-CambiarIp {
   Mostrar-Accesos
 }
 
+$codigoSalida = 0
 try {
   switch ($Accion.ToLower()) {
     'instalar' { Accion-Instalar }
+    'abrir' { Accion-Abrir }
+    'iniciar-silencioso' { Accion-Abrir -Silencioso }
+    'accesos' { Crear-Accesos (Preguntar-SiNo '¿Iniciar la plataforma automáticamente al iniciar sesión en Windows?') }
+    'desinstalar' { Accion-Desinstalar }
     'iniciar' { Comprobar-Docker; Copiar-Funciones; Levantar; Mostrar-Accesos }
     'detener' { Compose @('stop') | Out-Null; Ok 'Servicios detenidos. Los datos se conservan.' }
     'estado' { Compose @('ps', '--format', 'table {{.Service}}\t{{.Status}}') | Out-Null; Mostrar-Accesos }
@@ -610,5 +822,10 @@ try {
 } catch {
   Write-Host ''
   Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
-  exit 1
+  $codigoSalida = 1
 }
+if ($Pausa) {
+  Write-Host ''
+  Read-Host 'Presione Enter para cerrar' | Out-Null
+}
+exit $codigoSalida
