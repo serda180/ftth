@@ -337,9 +337,14 @@ function Instalar-WinSW {
 # Secretos, permisos y configuración
 # ----------------------------------------------------------------------------
 function Proteger-Carpeta([string]$Carpeta) {
-  # Solo Administradores (S-1-5-32-544) y SYSTEM (S-1-5-18). SID: válido en Windows en español.
+  # Solo Administradores (S-1-5-32-544), SYSTEM (S-1-5-18) y la cuenta que instala.
+  # La cuenta va explícita porque initdb y pg_ctl, al correr como administrador,
+  # renuncian a ese grupo (token restringido) y sin ella no podrían usar la carpeta.
   New-Item -ItemType Directory -Force -Path $Carpeta | Out-Null
-  $r = Invoke-Nativo 'icacls.exe' @($Carpeta, '/inheritance:r', '/grant:r', '*S-1-5-32-544:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', '/Q')
+  $yo = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  $permisos = @('*S-1-5-32-544:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F')
+  if ($yo -ne 'S-1-5-18') { $permisos += "*${yo}:(OI)(CI)F" }
+  $r = Invoke-Nativo 'icacls.exe' (@($Carpeta, '/inheritance:r', '/grant:r') + $permisos + @('/Q'))
   if ($r.Codigo -ne 0) { Aviso "No se pudieron fijar permisos en ${Carpeta}: $($r.Salida)" }
 }
 
@@ -392,6 +397,9 @@ function Escribir-Config {
 function Entorno-Pg {
   $env:PGPASSWORD = (Leer-Secretos).postgres
   $env:PGCLIENTENCODING = 'UTF8'
+  # Mensajes de las herramientas de PostgreSQL en inglés: en español salen en
+  # otra codificación de Windows y se ven con caracteres rotos.
+  $env:LC_MESSAGES = 'C'
 }
 
 function Psql([string[]]$Extra, [string]$Base = 'ftth') {
@@ -414,6 +422,7 @@ function Inicializar-Postgres {
     Ok 'La base de datos ya existe: se conservan los datos'
   } else {
     Info 'Creando el almacén de datos...'
+    Entorno-Pg
     $clave = Join-Path $Datos 'pg-clave.tmp'
     Escribir-Texto $clave (Leer-Secretos).postgres
     $base = @('-D', $PgData, '-U', 'postgres', "--pwfile=$clave", '-E', 'UTF8', '-A', 'scram-sha-256')
