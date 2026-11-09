@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import { supabase } from '../lib/supabase';
+import { correoConfigurado, supabase } from '../lib/supabase';
 import { mensajeError } from '../lib/errores';
 import { Aviso, Boton, Campo } from '../components/ui';
 import { PaginaAcceso } from './PaginaAcceso';
@@ -24,6 +24,22 @@ export function RecuperarClave() {
       return;
     }
     setEnviado(true);
+  }
+
+  if (!correoConfigurado) {
+    return (
+      <PaginaAcceso titulo="Recuperar contraseña" detalle="Esta instalación no envía correos.">
+        <div className="flex flex-col gap-4">
+          <p>
+            Pida a un administrador un enlace de acceso: en <strong>Usuarios</strong>, botón{' '}
+            <strong>Enlace de acceso</strong> junto a su nombre. Con ese enlace podrá crear una contraseña nueva.
+          </p>
+          <Link to="/ingresar" className="text-sm text-acento hover:underline">
+            Volver a ingresar
+          </Link>
+        </div>
+      </PaginaAcceso>
+    );
   }
 
   return (

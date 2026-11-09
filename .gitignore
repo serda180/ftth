@@ -3,7 +3,11 @@ dist/
 .env
 .env.local
 *.log
-.supabase-functions.log
 supabase/.branches
 supabase/.temp
 .DS_Store
+
+# Instalación en Windows (se generan en el PC servidor)
+/runtime/
+/datos/
+/respaldos/

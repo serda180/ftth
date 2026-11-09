@@ -1,0 +1,10 @@
+{
+  "name": "plataforma-ftth-servidor",
+  "private": true,
+  "description": "Servidor de la Plataforma FTTH para Windows: HTTPS, autenticación, archivos y proxy a PostgREST. Sin dependencias.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node servidor.mjs ../datos/config.json"
+  }
+}

@@ -16,14 +16,14 @@ Estados: **implementado y probado** · **implementado sin pruebas** · **solo in
 | Inventario: costo más alto, stock, consumo del técnico | implementado y probado | Esquema y reglas listos; la interfaz llega en la Etapa 5. |
 | Indicadores del panel (`dashboard_indicadores`) | implementado y probado | |
 | Datos de demostración y su eliminación | implementado y probado | `supabase/seed.sql`, `eliminar_datos_demo()`. |
-| Edge Function `admin-usuarios` (invitar, desactivar, reactivar) | implementado sin pruebas | No se pudo ejecutar el runtime de Supabase en el entorno de desarrollo. |
+| Gestión de usuarios `admin-usuarios` (invitar, enlace de acceso, desactivar, reactivar) | implementado y probado | En `servidor/lib/usuarios.mjs`; sin correo, el administrador comparte el enlace (WhatsApp). |
 | Frontend: ingreso, recuperación y creación de contraseña | implementado sin pruebas | Escrito, no compilado aún: el entorno de desarrollo no tenía acceso a npm. |
 | Frontend: menú lateral por rol, panel de indicadores | implementado sin pruebas | Ídem. |
 | Frontend: usuarios (invitar, roles, activar/desactivar) | implementado sin pruebas | Ídem. |
 | Frontend: "Mis órdenes" del técnico (lectura) | implementado sin pruebas | Cambiar estado y cerrar órdenes desde el teléfono llega en la Etapa 4. |
 | Frontend: utilidades (RUT, formatos CLP y fechas) | implementado y probado | Pruebas unitarias ejecutadas. |
-| Docker del frontend (Nginx, `/config.js`, CSP) | implementado sin pruebas | Script de arranque probado; la imagen no se construyó. |
-| Instalación en Windows con un clic (`INSTALAR.cmd`, `windows/ftth.ps1`) | implementado sin probar en Windows | Reemplaza al entorno local con `dev.sh` y a la instalación en VPS, retirados. |
+| Servidor nativo para Windows (`servidor/`): HTTPS con CA local, auth, fotos, proxy a PostgREST | implementado y probado | Prueba de punta a punta con PostgREST 16.5 y PostgreSQL 16 (PostGIS simulado), reproduciendo las llamadas de supabase-js. Sin Docker ni Supabase. |
+| Instalador para Windows (`INSTALAR.cmd`, `windows/ftth.ps1`): servicios, firewall, certificado, accesos, respaldos | implementado sin probar en Windows | Sintaxis verificada y partes probadas en Linux; falta la primera instalación real. |
 | CI en GitHub Actions | implementado sin pruebas | Corre pgTAP y la compilación del frontend en cada push. |
 
 ## Etapa 2 — Mapa GIS

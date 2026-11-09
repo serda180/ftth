@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { mensajeError } from './errores';
 
 /**
- * Llama una Edge Function y devuelve su respuesta. Si la función responde
+ * Llama una función del servidor (/functions/v1/<nombre>) y devuelve su respuesta. Si la función responde
  * con error, lanza un Error con el mensaje en español que ella devuelve.
  */
 export async function llamarFuncion<T>(nombre: string, cuerpo: Record<string, unknown>): Promise<T> {

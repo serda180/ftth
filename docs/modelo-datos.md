@@ -56,7 +56,7 @@ erDiagram
 ### Usuarios
 | Tabla | Propósito |
 |---|---|
-| `perfiles` | Un registro por usuario de Supabase Auth (se crea solo). Nombre, teléfono, activo. |
+| `perfiles` | Un registro por usuario de `auth.users` (se crea solo). Nombre, teléfono, activo. |
 | `usuario_roles` | Roles del usuario. Un usuario puede tener varios. Solo el administrador los asigna. |
 
 ### Catálogos y configuración

@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { Copy, KeyRound, MessageCircle, UserPlus, X } from 'lucide-react';
+import { correoConfigurado, supabase } from '../lib/supabase';
 import { llamarFuncion } from '../lib/funciones';
 import { mensajeError } from '../lib/errores';
 import { ROLES, type Rol } from '../lib/roles';
 import { formatearFecha } from '../lib/formato';
 import { useAuth } from '../auth/AuthProvider';
 import { Aviso, Boton, Campo, Cargando, EncabezadoPagina } from '../components/ui';
+
+type EnlaceGenerado = { para: string; enlace: string; tipo: 'invitacion' | 'acceso'; correoEnviado: boolean };
 
 type Usuario = {
   id: string;
@@ -23,6 +25,7 @@ export function Usuarios() {
   const qc = useQueryClient();
   const [invitando, setInvitando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'exito'; texto: string } | null>(null);
+  const [enlace, setEnlace] = useState<EnlaceGenerado | null>(null);
 
   const consulta = useQuery({
     queryKey: ['usuarios'],
@@ -63,6 +66,18 @@ export function Usuarios() {
     onSettled: (_d, _e, v) => refrescar(v.usuario),
   });
 
+  const pedirEnlace = useMutation({
+    mutationFn: async (u: Usuario) =>
+      llamarFuncion<{ enlace: string }>('admin-usuarios', { accion: 'enlace', usuario_id: u.id }),
+    onMutate: () => {
+      setAviso(null);
+      setEnlace(null);
+    },
+    onSuccess: (r, u) =>
+      setEnlace({ para: u.nombre_completo || u.email, enlace: r.enlace, tipo: 'acceso', correoEnviado: false }),
+    onError: (e) => setAviso({ tipo: 'error', texto: mensajeError(e) }),
+  });
+
   return (
     <>
       <EncabezadoPagina
@@ -80,13 +95,16 @@ export function Usuarios() {
       {invitando && (
         <FormularioInvitacion
           alCerrar={() => setInvitando(false)}
-          alInvitar={async (email) => {
+          alInvitar={async (generado) => {
             setInvitando(false);
-            setAviso({ tipo: 'exito', texto: `Invitación enviada a ${email}.` });
+            setAviso(null);
+            setEnlace(generado);
             await qc.invalidateQueries({ queryKey: ['usuarios'] });
           }}
         />
       )}
+
+      {enlace && <PanelEnlace enlace={enlace} alCerrar={() => setEnlace(null)} />}
 
       {aviso && (
         <div className="mb-4">
@@ -99,7 +117,7 @@ export function Usuarios() {
 
       {consulta.data && (
         <div className="overflow-x-auto rounded-md border border-linea bg-superficie">
-          <table className="w-full min-w-[760px] text-left">
+          <table className="w-full min-w-[900px] text-left">
             <thead className="border-b border-linea text-sm text-tenue">
               <tr>
                 <th scope="col" className="px-4 py-3 font-medium">Persona</th>
@@ -145,6 +163,18 @@ export function Usuarios() {
                       );
                     })}
                     <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                      {!soyYo && u.activo && (
+                        <Boton
+                          variante="secundario"
+                          className="whitespace-nowrap px-3 py-1.5 text-sm"
+                          title="Enlace para crear una contraseña nueva (si la olvidó o no recibió la invitación)"
+                          cargando={pedirEnlace.isPending && pedirEnlace.variables?.id === u.id}
+                          onClick={() => pedirEnlace.mutate(u)}
+                        >
+                          <KeyRound className="size-4" aria-hidden /> Enlace de acceso
+                        </Boton>
+                      )}
                       {!soyYo && (
                         <Boton
                           variante={u.activo ? 'peligro' : 'secundario'}
@@ -160,6 +190,7 @@ export function Usuarios() {
                           {u.activo ? 'Desactivar' : 'Reactivar'}
                         </Boton>
                       )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -175,7 +206,13 @@ export function Usuarios() {
   );
 }
 
-function FormularioInvitacion({ alCerrar, alInvitar }: { alCerrar: () => void; alInvitar: (email: string) => void }) {
+function FormularioInvitacion({
+  alCerrar,
+  alInvitar,
+}: {
+  alCerrar: () => void;
+  alInvitar: (generado: EnlaceGenerado) => void;
+}) {
   const [email, setEmail] = useState('');
   const [nombre, setNombre] = useState('');
   const [roles, setRoles] = useState<Rol[]>([]);
@@ -190,13 +227,13 @@ function FormularioInvitacion({ alCerrar, alInvitar }: { alCerrar: () => void; a
     setError('');
     setEnviando(true);
     try {
-      await llamarFuncion('admin-usuarios', {
+      const r = await llamarFuncion<{ enlace: string; correo_enviado: boolean }>('admin-usuarios', {
         accion: 'invitar',
         email: email.trim().toLowerCase(),
         nombre_completo: nombre.trim(),
         roles,
       });
-      alInvitar(email.trim());
+      alInvitar({ para: nombre.trim(), enlace: r.enlace, tipo: 'invitacion', correoEnviado: r.correo_enviado });
     } catch (err) {
       setError(mensajeError(err));
     } finally {
@@ -229,7 +266,11 @@ function FormularioInvitacion({ alCerrar, alInvitar }: { alCerrar: () => void; a
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={email && !emailValido ? 'Revise el formato del correo.' : undefined}
-          ayuda="Recibirá un enlace para crear su contraseña."
+          ayuda={
+            correoConfigurado
+              ? 'Recibirá un enlace por correo para crear su contraseña.'
+              : 'Es su usuario para ingresar. El enlace para crear la contraseña se lo comparte usted.'
+          }
           autoComplete="off"
         />
         <fieldset className="md:col-span-2">
@@ -267,13 +308,79 @@ function FormularioInvitacion({ alCerrar, alInvitar }: { alCerrar: () => void; a
             cargando={enviando}
             disabled={!emailValido || nombre.trim().length < 2 || roles.length === 0}
           >
-            Enviar invitación
+            {correoConfigurado ? 'Enviar invitación' : 'Crear invitación'}
           </Boton>
           <Boton type="button" variante="secundario" onClick={alCerrar}>
             Cancelar
           </Boton>
         </div>
       </form>
+    </section>
+  );
+}
+
+/** Enlace de invitación o de acceso, para copiar o compartir por WhatsApp. */
+function PanelEnlace({ enlace, alCerrar }: { enlace: EnlaceGenerado; alCerrar: () => void }) {
+  const [copiado, setCopiado] = useState(false);
+  const vigencia = enlace.tipo === 'invitacion' ? '7 días' : '3 días';
+  const mensaje =
+    enlace.tipo === 'invitacion'
+      ? `Hola ${enlace.para}, te invito a la Plataforma FTTH. Abre este enlace para crear tu contraseña (vale ${vigencia}): ${enlace.enlace}`
+      : `Hola ${enlace.para}, con este enlace puedes crear una contraseña nueva en la Plataforma FTTH (vale ${vigencia}): ${enlace.enlace}`;
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(enlace.enlace);
+    } catch {
+      const campo = document.getElementById('enlace-generado') as HTMLInputElement | null;
+      campo?.select();
+      document.execCommand('copy');
+    }
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  return (
+    <section className="mb-6 rounded-md border border-acento bg-superficie p-5" aria-labelledby="titulo-enlace">
+      <div className="mb-3 flex items-start justify-between gap-4">
+        <div>
+          <h2 id="titulo-enlace" className="font-cond text-xl font-semibold">
+            {enlace.tipo === 'invitacion' ? 'Invitación creada' : 'Enlace de acceso'}
+          </h2>
+          <p className="text-sm text-tenue">
+            {enlace.correoEnviado
+              ? `Se envió por correo a ${enlace.para}. También puede compartir el enlace.`
+              : `Envíe este enlace a ${enlace.para}. Sirve una sola vez y vale ${vigencia}.`}
+          </p>
+        </div>
+        <button type="button" onClick={alCerrar} aria-label="Cerrar" className="rounded p-1 text-tenue hover:bg-fondo">
+          <X className="size-5" aria-hidden />
+        </button>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          id="enlace-generado"
+          readOnly
+          value={enlace.enlace}
+          onFocus={(e) => e.currentTarget.select()}
+          className="min-w-0 flex-1 rounded-md border border-linea bg-fondo px-3 py-2 font-mono text-sm"
+          aria-label="Enlace"
+        />
+        <Boton type="button" variante="secundario" onClick={copiar}>
+          <Copy className="size-4" aria-hidden /> {copiado ? 'Copiado' : 'Copiar'}
+        </Boton>
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(mensaje)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-linea px-4 py-2 font-medium hover:bg-fondo"
+        >
+          <MessageCircle className="size-4" aria-hidden /> WhatsApp
+        </a>
+      </div>
+      <p className="mt-3 text-xs text-tenue">
+        La persona debe estar en la red de la oficina y tener instalado el certificado de la oficina en su equipo.
+      </p>
     </section>
   );
 }
