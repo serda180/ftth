@@ -19,6 +19,10 @@ el PC, aunque nadie inicie sesión.
 2. Doble clic en **`C:\ftth\INSTALAR.cmd`** y acepte el permiso de administrador.
 3. Responda las preguntas (casi todas con Enter) y cree el primer administrador.
 
+Al ingresar por primera vez, el asistente **Primeros pasos** lo guía para crear su red
+desde cero: empresa y zona del mapa, planes, OLT, cable troncal, NAP con su splitter y
+su equipo. No parte con datos de ejemplo.
+
 Tarda de 5 a 15 minutos según la conexión. Si se interrumpe, vuelva a ejecutar
 `INSTALAR.cmd`: conserva los datos y las claves.
 
@@ -36,7 +40,7 @@ En el **menú Inicio → Plataforma FTTH**:
 | Reiniciar | Reinicia la plataforma |
 | Configurar correo | Servidor de correo para invitaciones (opcional) |
 | Actualizar | Instala una versión nueva (respalda antes) |
-| Borrar datos de demostración | Solo si los cargó al instalar |
+| Borrar datos de demostración | Solo si instaló con la red de ejemplo (`-Demo`) |
 
 ## Usuarios sin correo
 

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Gauge, ClipboardList, Inbox, Wrench, Map as IconoMapa, Network, Contact, Settings, Users, UserCircle, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
+import { ListChecks, Gauge, ClipboardList, Inbox, Wrench, Map as IconoMapa, Network, Contact, Settings, Users, UserCircle, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { ROLES_PANEL, nombreRol, tieneRol, type Rol } from '../lib/roles';
 import { supabase } from '../lib/supabase';
 import { CintaFibra } from '../components/CintaFibra';
+import { usePrimerosPasos } from '../pages/PrimerosPasos';
 
 type ItemMenu = { a: string; texto: string; icono: LucideIcon; roles: Rol[] | 'todos' };
 
@@ -49,7 +50,12 @@ export function AppLayout() {
   useEffect(() => setAbierto(false), [ubicacion.pathname]);
   const pantallaCompleta = ubicacion.pathname.startsWith('/mapa');
 
+  const primerosPasos = usePrimerosPasos();
   const items = MENU.filter((i) => i.roles === 'todos' || tieneRol(roles, ...i.roles));
+  // Mientras el asistente no esté terminado, aparece primero en el menú.
+  if (primerosPasos.data && !primerosPasos.data.completo) {
+    items.unshift({ a: '/primeros-pasos', texto: 'Primeros pasos', icono: ListChecks, roles: ['administrador'] });
+  }
 
   const menu = (
     <nav className="flex h-full flex-col bg-chaqueta text-white/85">

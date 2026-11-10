@@ -9,7 +9,7 @@
   Uso:  powershell -ExecutionPolicy Bypass -File ftth.ps1 <accion> [opciones]
 
   Acciones:
-    instalar            Instala o repara (conserva datos y claves). Opción: -Demo
+    instalar            Instala o repara (conserva datos y claves). Opción: -Demo (red de ejemplo)
     estado              Servicios, direcciones de acceso y certificado
     crear-usuario       Crea un usuario con contraseña y rol
     respaldar           Respaldo de base de datos, fotos y configuración. Opción: -Destino <carpeta>
@@ -932,7 +932,9 @@ function Accion-Instalar {
   Paso 'Servicio de base de datos'
   Inicializar-Postgres
   Preparar-Base
-  if ($Demo -or (Preguntar-SiNo '¿Cargar datos de demostración para probar?' $false)) { Cargar-Demo }
+  # Sin datos de ejemplo: al ingresar, el asistente "Primeros pasos" guía la
+  # creación de la red real. La demostración solo se carga con -Demo.
+  if ($Demo) { Cargar-Demo }
 
   Construir-Frontend
 

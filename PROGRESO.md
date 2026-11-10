@@ -23,6 +23,7 @@ Estados: **implementado y probado** · **implementado sin pruebas** · **solo in
 | Frontend: "Mis órdenes" del técnico (lectura) | implementado sin pruebas | Cambiar estado y cerrar órdenes desde el teléfono llega en la Etapa 4. |
 | Frontend: utilidades (RUT, formatos CLP y fechas) | implementado y probado | Pruebas unitarias ejecutadas. |
 | Servidor nativo para Windows (`servidor/`): HTTPS con CA local, auth, fotos, proxy a PostgREST | implementado y probado | Prueba de punta a punta con PostgREST 16.5 y PostgreSQL 16 (PostGIS simulado), reproduciendo las llamadas de supabase-js. Sin Docker ni Supabase. |
+| Asistente "Primeros pasos" (empresa y zona del mapa, planes, OLT → troncal → NAP, equipo) | implementado sin compilar aquí | Aparece al primer ingreso del administrador; `estado_primeros_pasos()` probado. El instalador ya no carga demostración. |
 | Instalador para Windows (`INSTALAR.cmd`, `windows/ftth.ps1`): servicios, firewall, certificado, accesos, respaldos | implementado sin probar en Windows | Sintaxis verificada y partes probadas en Linux; falta la primera instalación real. |
 | CI en GitHub Actions | implementado sin pruebas | Corre pgTAP y la compilación del frontend en cada push. |
 

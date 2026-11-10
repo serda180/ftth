@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { mensajeError } from '../lib/errores';
@@ -25,7 +26,15 @@ const EDITABLES: { clave: string; tipo: 'texto' | 'numero'; unidad?: string }[] 
 export function Configuracion() {
   return (
     <>
-      <EncabezadoPagina titulo="Configuración" detalle="Planes comerciales y parámetros técnicos de la empresa." />
+      <EncabezadoPagina
+        titulo="Configuración"
+        detalle="Planes comerciales y parámetros técnicos de la empresa."
+        acciones={
+          <Link to="/primeros-pasos" className="font-medium text-acento hover:underline">
+            Asistente de primeros pasos
+          </Link>
+        }
+      />
       <div className="grid gap-12 xl:grid-cols-2">
         <Planes />
         <Parametros />
@@ -34,7 +43,7 @@ export function Configuracion() {
   );
 }
 
-function Planes() {
+export function Planes() {
   const qc = useQueryClient();
   const planes = useQuery({
     queryKey: ['configuracion', 'planes'],

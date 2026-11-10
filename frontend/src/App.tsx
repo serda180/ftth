@@ -18,6 +18,8 @@ import { FormCliente } from './clientes/FormCliente';
 import { FichaCliente } from './clientes/FichaCliente';
 import { PaginaTopologia } from './topologia/PaginaTopologia';
 import { Configuracion } from './pages/Configuracion';
+import { PrimerosPasos, usePrimerosPasos } from './pages/PrimerosPasos';
+import { PantallaCarga } from './components/ui';
 import { ListaSolicitudes } from './solicitudes/ListaSolicitudes';
 import { FormSolicitud } from './solicitudes/FormSolicitud';
 import { FichaSolicitud } from './solicitudes/FichaSolicitud';
@@ -34,6 +36,12 @@ const clienteQuery = new QueryClient({
 /** Inicio según el rol: panel para gestión, "Mis órdenes" para técnicos. */
 function Inicio() {
   const { roles } = useAuth();
+  const primerosPasos = usePrimerosPasos();
+  // Primer ingreso de un administrador: asistente para crear la red desde cero.
+  if (roles.includes('administrador')) {
+    if (primerosPasos.isPending) return <PantallaCarga />;
+    if (primerosPasos.data && !primerosPasos.data.completo) return <Navigate to="/primeros-pasos" replace />;
+  }
   if (tieneRol(roles, ...ROLES_PANEL)) return <Panel />;
   if (roles.includes('tecnico')) return <Navigate to="/mis-ordenes" replace />;
   return <Navigate to="/mi-cuenta" replace />;
@@ -45,8 +53,8 @@ export function App() {
       <div className="mx-auto max-w-xl px-5 py-20">
         <h1 className="font-cond text-2xl font-semibold">Falta configurar la conexión</h1>
         <p className="mt-2 text-tenue">
-          Defina SUPABASE_URL y SUPABASE_ANON_KEY en el contenedor (o VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en
-          frontend/.env para desarrollo) y recargue la página.
+          El servidor no entregó la configuración (/config.js). Revise el servicio con "Estado" en el menú Inicio
+          (o, en desarrollo, defina VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en frontend/.env) y recargue la página.
         </p>
       </div>
     );
@@ -130,6 +138,14 @@ export function App() {
                 element={
                   <RequiereRol roles={['tecnico']}>
                     <TecnicoOrden />
+                  </RequiereRol>
+                }
+              />
+              <Route
+                path="primeros-pasos"
+                element={
+                  <RequiereRol roles={['administrador']}>
+                    <PrimerosPasos />
                   </RequiereRol>
                 }
               />
