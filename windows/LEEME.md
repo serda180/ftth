@@ -90,7 +90,8 @@ Qué queda en `C:\ftth`:
 | Carpeta | Contenido |
 |---|---|
 | `runtime\` | PostgreSQL 17 + PostGIS, Node.js, PostgREST y el envoltorio de servicio |
-| `datos\` | base de datos, fotos, certificados, configuración (`config.json`, `secretos.json`) y registros. Solo administradores. |
+| `basedatos\` | archivos de PostgreSQL. Solo administradores y el servicio de base de datos. |
+| `datos\` | fotos, certificados, configuración (`config.json`, `secretos.json`) y registros. Solo administradores. |
 | `respaldos\` | respaldos. Solo administradores. |
 
 Servicios de Windows: **PlataformaFTTH-BaseDatos** (PostgreSQL, puerto 54330 solo en este

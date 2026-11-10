@@ -24,7 +24,8 @@
 
   Se instala todo dentro de la carpeta del sistema (por ejemplo C:\ftth):
     runtime\  PostgreSQL + PostGIS, Node.js, PostgREST y el envoltorio de servicio
-    datos\    base de datos, fotos, certificados, configuración y registros
+    basedatos\ archivos de PostgreSQL (solo administradores y el servicio)
+    datos\    fotos, certificados, configuración y registros
     respaldos\
 #>
 [CmdletBinding()]
@@ -52,7 +53,7 @@ $Datos = Join-Path $Raiz 'datos'
 $Respaldos = Join-Path $Raiz 'respaldos'
 $PgDir = Join-Path $Runtime 'pgsql'
 $PgBin = Join-Path $PgDir 'bin'
-$PgData = Join-Path $Datos 'postgres'
+$PgData = Join-Path $Raiz 'basedatos'
 $NodeDir = Join-Path $Runtime 'node'
 $NodeExe = Join-Path $NodeDir 'node.exe'
 $PostgrestExe = Join-Path $Runtime 'postgrest\postgrest.exe'
@@ -418,21 +419,35 @@ function Esperar-Pg {
 }
 
 function Inicializar-Postgres {
+  # Restos de un intento anterior (versiones previas usaban datos\postgres).
+  $viejo = Join-Path $Datos 'postgres'
+  if ((Test-Path $viejo) -and -not (Test-Path (Join-Path $viejo 'PG_VERSION'))) { Remove-Item $viejo -Recurse -Force }
+
   if (Test-Path (Join-Path $PgData 'PG_VERSION')) {
     Ok 'La base de datos ya existe: se conservan los datos'
   } else {
+    if (Test-Path $PgData) { Remove-Item $PgData -Recurse -Force }
     Info 'Creando el almacén de datos...'
     Entorno-Pg
-    $clave = Join-Path $Datos 'pg-clave.tmp'
+    # initdb corre con privilegios reducidos (sin el grupo Administradores):
+    # la clave va en la carpeta temporal del usuario y el almacén se crea con
+    # los permisos normales de la carpeta del sistema; después se restringe.
+    $clave = Join-Path $env:TEMP "ftth-pg-$(Hex 4).tmp"
     Escribir-Texto $clave (Leer-Secretos).postgres
     $base = @('-D', $PgData, '-U', 'postgres', "--pwfile=$clave", '-E', 'UTF8', '-A', 'scram-sha-256')
-    $r = Invoke-Nativo (Join-Path $PgBin 'initdb.exe') ($base + @('--locale-provider=icu', '--icu-locale=es-CL', '--locale=C'))
+    try {
+      $r = Invoke-Nativo (Join-Path $PgBin 'initdb.exe') ($base + @('--locale-provider=icu', '--icu-locale=es-CL', '--locale=C'))
+      if ($r.Codigo -ne 0) {
+        $primero = $r.Salida
+        if (Test-Path $PgData) { Remove-Item $PgData -Recurse -Force }
+        $r = Invoke-Nativo (Join-Path $PgBin 'initdb.exe') ($base + @('--locale=C'))
+        if ($r.Codigo -ne 0) { $r.Salida = "$primero`n---`n$($r.Salida)" }
+      }
+    } finally { Remove-Item $clave -Force -ErrorAction SilentlyContinue }
     if ($r.Codigo -ne 0) {
       if (Test-Path $PgData) { Remove-Item $PgData -Recurse -Force }
-      $r = Invoke-Nativo (Join-Path $PgBin 'initdb.exe') ($base + @('--locale=C'))
+      Falla "initdb falló:`n$($r.Salida)"
     }
-    Remove-Item $clave -Force -ErrorAction SilentlyContinue
-    if ($r.Codigo -ne 0) { Falla "initdb falló:`n$($r.Salida)" }
     Add-Content -Path (Join-Path $PgData 'postgresql.conf') -Encoding ASCII -Value @"
 
 # --- Plataforma FTTH ---
@@ -450,8 +465,17 @@ log_rotation_age = 1d
 "@
     Ok 'Almacén de datos creado'
   }
-  # El servicio corre como NETWORK SERVICE (S-1-5-20): necesita control de su carpeta.
-  Invoke-Nativo 'icacls.exe' @($PgData, '/grant', '*S-1-5-20:(OI)(CI)F', '/T', '/Q') | Out-Null
+  # Solo Administradores, SYSTEM, NETWORK SERVICE (S-1-5-20, la cuenta del
+  # servicio) y quien instala. Los archivos de adentro heredan estos permisos.
+  $yo = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  $r = Invoke-Nativo 'icacls.exe' @($PgData, '/inheritance:r', '/grant:r', '*S-1-5-32-544:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F',
+    '*S-1-5-20:(OI)(CI)F', "*${yo}:(OI)(CI)F", '/Q')
+  if ($r.Codigo -ne 0) { Falla "No se pudieron fijar los permisos de la base de datos:`n$($r.Salida)" }
+
+  # El servicio necesita leer y ejecutar los programas de PostgreSQL (si la carpeta
+  # se movió desde Descargas, conserva permisos que solo incluyen al usuario).
+  $r = Invoke-Nativo 'icacls.exe' @($PgDir, '/grant', '*S-1-5-20:(OI)(CI)RX', '/Q')
+  if ($r.Codigo -ne 0) { Aviso "No se pudieron fijar permisos en ${PgDir}: $($r.Salida)" }
 
   if (-not (Get-Service -Name $ServicioBase -ErrorAction SilentlyContinue)) {
     $r = Invoke-Nativo (Join-Path $PgBin 'pg_ctl.exe') @('register', '-N', $ServicioBase, '-U', 'NT AUTHORITY\NetworkService',
@@ -968,7 +992,7 @@ function Accion-Desinstalar {
   Write-Host ''
   Aviso "Los datos siguen en $Datos y los respaldos en $Respaldos."
   if ((Read-Host 'Para BORRAR datos, respaldos y componentes escriba BORRAR (Enter para conservarlos)') -ceq 'BORRAR') {
-    foreach ($c in $Datos, $Respaldos, $Runtime) { Remove-Item $c -Recurse -Force -ErrorAction SilentlyContinue }
+    foreach ($c in $Datos, $PgData, $Respaldos, $Runtime) { Remove-Item $c -Recurse -Force -ErrorAction SilentlyContinue }
     Ok 'Datos borrados'
   } else { Ok 'Datos conservados: si vuelve a instalar en esta carpeta, reaparecen.' }
 }
