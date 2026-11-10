@@ -232,9 +232,15 @@ function Instalar-VcRedist {
 
 function Instalar-PostgreSQL {
   $m = Leer-Marcas
-  if ((Test-Path (Join-Path $PgBin 'postgres.exe')) -and $m.PostgreSQL -eq $Versiones.PostgreSQL) {
+  # 'Instalacion' = 2: PostGIS copiado sin pisar bibliotecas de PostgreSQL.
+  # Las instalaciones anteriores se reparan extrayendo de nuevo PostgreSQL.
+  if ((Test-Path (Join-Path $PgBin 'postgres.exe')) -and $m.PostgreSQL -eq $Versiones.PostgreSQL -and $m.Instalacion -eq '2') {
     Ok "PostgreSQL $($Versiones.PostgreSQL) ya instalado"
     return
+  }
+  foreach ($n in $ServicioApp, $ServicioBase) {
+    $sv = Get-Service -Name $n -ErrorAction SilentlyContinue
+    if ($sv -and $sv.Status -ne 'Stopped') { Stop-Service $n -Force; Start-Sleep -Seconds 2 }
   }
   Instalar-VcRedist
   $zip = Join-Path $Descargas "postgresql-$($Versiones.PostgreSQL)-windows-x64-binaries.zip"
@@ -277,16 +283,28 @@ function Instalar-PostGIS {
   if (-not (Test-Path $zip)) { Info "Descargando $elegido..."; Descargar ($Fuentes.PostGIS + $elegido) $zip }
   $tmp = Join-Path $Runtime 'tmp-postgis'
   Extraer $zip $tmp
-  # El zip trae una carpeta con bin, lib, share (y otras): se copian sobre pgsql.
+  # El zip trae una carpeta con bin, lib, share (y otras): se agregan a pgsql
+  # SIN reemplazar nada. El paquete trae sus propias copias de bibliotecas
+  # (OpenSSL, libxml2...) que, si pisan las de PostgreSQL, rompen pgcrypto.
   $base = Get-ChildItem -Path $tmp -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'share') } | Select-Object -First 1
   if (-not $base) { $base = Get-Item $tmp }
+  $nuevos = 0
   foreach ($sub in 'bin', 'lib', 'share') {
     $o = Join-Path $base.FullName $sub
-    if (Test-Path $o) { Copy-Item -Path (Join-Path $o '*') -Destination (Join-Path $PgDir $sub) -Recurse -Force }
+    if (-not (Test-Path $o)) { continue }
+    foreach ($f in Get-ChildItem -Path $o -Recurse -File) {
+      $destino = Join-Path (Join-Path $PgDir $sub) $f.FullName.Substring($o.Length).TrimStart([char]92)
+      if (Test-Path $destino) { continue }
+      New-Item -ItemType Directory -Force -Path (Split-Path $destino) | Out-Null
+      Copy-Item -Path $f.FullName -Destination $destino
+      $nuevos++
+    }
   }
+  Info "$nuevos archivos de PostGIS agregados"
   Remove-Item $tmp -Recurse -Force
   if (-not (Test-Path (Join-Path $PgDir 'share\extension\postgis.control'))) { Falla 'PostGIS no quedó instalado correctamente.' }
   Guardar-Marca 'PostGIS' $elegido
+  Guardar-Marca 'Instalacion' '2'
   Ok "PostGIS instalado ($elegido)"
 }
 
