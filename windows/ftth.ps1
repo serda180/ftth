@@ -513,7 +513,9 @@ function Preparar-Base {
     $r = Psql @('-c', 'create database ftth') 'postgres'
     if ($r.Codigo -ne 0) { Falla "No se pudo crear la base:`n$($r.Salida)" }
   }
-  Psql @('-c', 'alter database ftth set search_path = "$user", public, extensions') | Out-Null
+  # Sin comillas dobles: PowerShell 5.1 las rompe al pasarlas a programas externos.
+  $r = Psql @('-c', 'alter database ftth set search_path = public, extensions')
+  if ($r.Codigo -ne 0) { Falla "No se pudo configurar la base:`n$($r.Salida)" }
 
   $r = Psql @('-f', (Join-Path $Servidor 'sql\00_entorno.sql'))
   if ($r.Codigo -ne 0) { Falla "Falló la preparación del entorno:`n$($r.Salida)" }
