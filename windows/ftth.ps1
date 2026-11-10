@@ -388,7 +388,7 @@ function Escribir-Config {
   }
   $cfg = [ordered]@{
     jwt_secret   = $s.jwt_secret
-    postgrest    = [ordered]@{ exe = $PostgrestExe; config = $PostgrestConf; url = "http://127.0.0.1:$PuertoPostgrest" }
+    postgrest    = [ordered]@{ exe = $PostgrestExe; config = $PostgrestConf; url = "http://127.0.0.1:$PuertoPostgrest"; path = $PgBin }
     web          = (Join-Path $Frontend 'dist')
     archivos     = (Join-Path $Datos 'archivos')
     certificados = (Join-Path $Datos 'certificados')
@@ -619,13 +619,18 @@ function Iniciar-App {
 }
 
 function Esperar-App {
+  $ultimo = ''
   for ($i = 0; $i -lt 60; $i++) {
     try {
       $r = Invoke-WebRequest -Uri 'https://localhost/salud' -UseBasicParsing -TimeoutSec 5
       if ($r.Content -eq 'ok') { return $true }
-    } catch { }
+      $ultimo = "respondió '$($r.Content)' (la API de datos, PostgREST, no está en marcha)"
+    } catch { $ultimo = $_.Exception.Message }
     Start-Sleep -Seconds 2
   }
+  Aviso "Última respuesta de https://localhost/salud: $ultimo"
+  $s = Get-Service -Name $ServicioApp -ErrorAction SilentlyContinue
+  if ($s) { Aviso "Servicio ${ServicioApp}: $($s.Status)" }
   return $false
 }
 

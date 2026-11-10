@@ -43,10 +43,20 @@ let cerrando = false;
 
 function iniciarPostgrest() {
   if (!cfg.postgrest.exe) return; // PostgREST externo (pruebas)
+  // En Windows, postgrest.exe necesita libpq.dll y sus dependencias: la carpeta
+  // bin de PostgreSQL se antepone al PATH del proceso hijo.
+  const entorno = { ...process.env };
+  if (cfg.postgrest.path) {
+    const clave = Object.keys(entorno).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
+    const separador = process.platform === 'win32' ? ';' : ':';
+    entorno[clave] = [ruta(cfg.postgrest.path), entorno[clave]].filter(Boolean).join(separador);
+  }
   postgrest = spawn(ruta(cfg.postgrest.exe), [ruta(cfg.postgrest.config)], {
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
+    env: entorno,
   });
+  postgrest.on('error', (e) => avisar(`No se pudo iniciar PostgREST: ${e.message}`));
   const registrar = (d) => {
     for (const linea of d.toString('utf8').split(/\r?\n/)) if (linea.trim()) avisar(`[postgrest] ${linea.trim()}`);
   };
@@ -55,7 +65,8 @@ function iniciarPostgrest() {
   postgrest.on('exit', (codigo) => {
     postgrest = null;
     if (!cerrando) {
-      avisar(`PostgREST terminó (código ${codigo}); se reinicia en 3 s`);
+      const detalle = codigo === 3221225781 ? ' — falta una DLL (libpq.dll): revise la carpeta runtime\\pgsql\\bin' : '';
+      avisar(`PostgREST terminó (código ${codigo}${detalle}); se reinicia en 3 s`);
       setTimeout(iniciarPostgrest, 3000);
     }
   });
